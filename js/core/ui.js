@@ -2,6 +2,8 @@
 import { renderVisual, vctx } from '../visuals/index.js';
 import { speak } from './speech.js';
 import { icon } from './icons.js';
+import { mascotSVG } from './mascot.js';
+import { play } from './sfx.js';
 
 export function h(tag, attrs, ...kids) {
   const el = document.createElement(tag);
@@ -64,7 +66,7 @@ function viewChoice(item) {
       h('span', { class: 'badge' }, LETTERS[i]),
       h('span', { class: 'ctext' }, c.visual ? renderVisual(c.visual) : null, c.text ? h('span', null, c.text) : null));
     b.addEventListener('click', () => {
-      if (b.disabled || impl.locked) return;
+      if (b.disabled || impl.locked) return; play('tap');
       if (multi) { if (sel.has(c._id)) sel.delete(c._id); else sel.add(c._id); }
       else { sel.clear(); sel.add(c._id); }
       btns.forEach((x, j) => { const on = sel.has(item.choices[j]._id); x.classList.toggle('on', on); x.setAttribute('aria-pressed', on); });
@@ -164,7 +166,7 @@ function viewNumpad(item) {
     slotEls.forEach((el, i) => { el.classList.toggle('active', i === active && !impl.locked); el.querySelector('.slot-val').textContent = vals[i] || ' '; el.classList.toggle('filled', !!vals[i]); });
   }
   const press = (k) => {
-    if (impl.locked) return;
+    if (impl.locked) return; play('tap');
     let v = vals[active];
     if (k === '⌫') v = v.slice(0, -1);
     else if (k === '−') { v = v.startsWith('−') ? v.slice(1) : '−' + v; }
@@ -301,7 +303,7 @@ export function renderItem(item) {
 }
 
 // ===== Trình giải thích từng bước =====
-export function openExplain({ title = 'Vì sao thế nhỉ?', steps, voice = true, onClose, finishLabel = 'Đã hiểu' }) {
+export function openExplain({ title = 'Vì sao thế nhỉ?', steps, voice = true, onClose, finishLabel = 'Đã hiểu', mascot = null }) {
   const ov = h('div', { class: 'sheet-ov', role: 'dialog', 'aria-modal': 'true', 'aria-label': title });
   const sheet = h('div', { class: 'sheet' });
   const vis = h('div', { class: 'sheet-visual' });
@@ -312,7 +314,7 @@ export function openExplain({ title = 'Vì sao thế nhỉ?', steps, voice = tru
   const btnSay = h('button', { class: 'btn-icon', type: 'button', 'aria-label': 'Nghe' }, icon('speaker', 24));
   const btnReplay = h('button', { class: 'btn-icon', type: 'button', 'aria-label': 'Xem lại hoạt hình' }, icon('replay', 24));
   const btnX = h('button', { class: 'btn-icon close', type: 'button', 'aria-label': 'Đóng' }, icon('close', 22));
-  sheet.append(h('div', { class: 'sheet-head' }, h('h3', null, title), btnX), h('div', { class: 'sheet-grid' }, vis, h('div', { class: 'sheet-side' }, textBox, h('div', { class: 'sheet-tools' }, btnSay, btnReplay), dots)), h('div', { class: 'sheet-nav' }, btnPrev, btnNext));
+  sheet.append(h('div', { class: 'sheet-head' }, h('div', { class: 'sh-left' }, mascot ? h('div', { class: 'sheet-dino' }, mascotSVG(mascot)) : null, h('h3', null, title)), btnX), h('div', { class: 'sheet-grid' }, vis, h('div', { class: 'sheet-side' }, textBox, h('div', { class: 'sheet-tools' }, btnSay, btnReplay), dots)), h('div', { class: 'sheet-nav' }, btnPrev, btnNext));
   ov.appendChild(sheet);
   let i = 0, visEl = null;
   const stepsOk = (steps || []).filter(Boolean);

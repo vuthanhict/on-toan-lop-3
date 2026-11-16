@@ -17,6 +17,14 @@ const UI = {
   star: '<path d="M12 3.2l2.6 5.6 6.1.7-4.5 4.2 1.2 6L12 16.7 6.6 19.7l1.2-6L3.3 9.5l6.1-.7z" fill="currentColor" stroke-linejoin="round"/>',
   flame: '<path d="M12.5 2.5c.4 3 2 4.3 3.6 6.2 1.4 1.7 2.4 3.4 2.4 5.6a6.5 6.5 0 0 1-13 0c0-2.2 1-3.9 2.3-5.3.2 1.3.8 2.2 1.8 2.8-.2-3.5 0-7.2 2.9-9.3z" fill="currentColor"/><path d="M12 21a3.2 3.2 0 0 1-3.2-3.2c0-1.8 1.4-2.8 2.2-4 .3 1 .9 1.5 1.5 1.9 1 .7 2.7 1.1 2.7 3.5A3.2 3.2 0 0 1 12 21z" fill="#FFD9A0" stroke="none"/>',
   backspace: '<path d="M21 6H9.5L3 12l6.5 6H21a1 1 0 0 0 1-1V7a1 1 0 0 0-1-1z"/><path d="M12.5 9.5l5 5M17.5 9.5l-5 5"/>',
+  coin: '<circle cx="12" cy="12" r="9.6" fill="currentColor" stroke="none"/><circle cx="12" cy="12" r="6.7" fill="none" stroke="#fff" stroke-opacity=".6" stroke-width="1.8"/><path d="M12 8.2l1.2 2.5 2.7.3-2 1.9.5 2.7-2.4-1.3-2.4 1.3.5-2.7-2-1.9 2.7-.3z" fill="#fff" stroke="none"/>',
+  trophy: '<path d="M8 4h8v5a4 4 0 0 1-8 0z" fill="currentColor"/><path d="M8 6H5v1.2A3 3 0 0 0 8 10M16 6h3v1.2a3 3 0 0 1-3 2.8M12 13v4M8.5 20h7"/>',
+  lock: '<rect x="6" y="11" width="12" height="9" rx="2.6"/><path d="M8.6 11V8.2a3.4 3.4 0 0 1 6.8 0V11"/>',
+  chest: '<rect x="3.5" y="9" width="17" height="11" rx="2.6"/><path d="M3.5 9V8a4.5 4.5 0 0 1 4.5-4.5h8A4.5 4.5 0 0 1 20.5 8v1M12 12v3"/><circle cx="12" cy="14.5" r="1.3" fill="currentColor"/>',
+  shirt: '<path d="M8.5 4L3 7l2 4.2 3-1.2V20h8V10l3 1.2L21 7l-5.5-3a3.6 3.6 0 0 1-7 0z"/>',
+  sound: '<path d="M4 10v4h3.5l5 4V6l-5 4H4z" fill="currentColor"/><path d="M16 9.2a4 4 0 0 1 0 5.6"/>',
+  mute: '<path d="M4 10v4h3.5l5 4V6l-5 4H4z" fill="currentColor"/><path d="M16 9.5l5 5M21 9.5l-5 5"/>',
+  gift: '<rect x="4" y="10" width="16" height="10" rx="2.5"/><path d="M3 10h18V7H3zM12 7v13"/><path d="M12 7C10.5 3.5 7 4 7 6s3 1 5 1zm0 0c1.5-3.5 5-3 5-1s-3 1-5 1z"/>',
   home: '<path d="M4 11l8-7 8 7M6 10v9h12v-9"/>',
 };
 export function icon(name, size = 24, cls = '') {

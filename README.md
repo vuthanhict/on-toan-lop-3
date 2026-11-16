@@ -1,4 +1,4 @@
-# Ôn Toán lớp 3 cùng Cú Mít
+# Ôn Toán lớp 3 cùng Mít
 
 Trang web ôn tập Toán học kì 1 lớp 3 cho điện thoại và máy tính: bài giảng hoạt hình, hình 3D, luyện tập không cần gõ chữ,
 giải thích từng bước khi làm sai và giọng đọc tiếng Việt.
