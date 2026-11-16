@@ -6,27 +6,33 @@ import { mascotSVG, setMascot, say as mascotSay } from './core/mascot.js';
 import { loadVisuals, renderVisual, vctx } from './visuals/index.js';
 import { loadTopics, resolveRef, makeSimilar } from './topics/index.js';
 import { seeded, shuffle } from './core/rng.js';
+import { icon, topicIcon, groupOf } from './core/icons.js';
 
 const app = document.getElementById('app');
 let TOPICS = [];
 const startedAt = Date.now();
 let restShown = false;
 
-const DAY_TITLES = { 1: 'Số và hàng', 2: 'Nhân chia 10, 100 · Làm tròn · Chẵn lẻ', 3: 'Cộng trừ · Nhân · Kết hợp', 4: 'Bội ước · Chia · Phân số', 5: 'Thang đo · Góc · Đối xứng · Giờ', 6: 'Tổng ôn & đề thử' };
+const DAY_TITLES = { 1: 'Số và hàng', 2: 'Nhân chia 10, 100 · Làm tròn · Chẵn lẻ', 3: 'Cộng trừ · Nhân · Kết hợp', 4: 'Bội ước · Chia · Phân số', 5: 'Thang đo · Góc · Đối xứng · Giờ', 6: 'Tổng ôn và đề thử' };
 const dayOf = (n) => TOPICS.filter((t) => t.day === n);
 
 function todayNo() {
   const s = store.get(); const a = new Date(s.start + 'T00:00:00'); const b = new Date(); b.setHours(0, 0, 0, 0);
   return Math.max(1, Math.min(6, Math.round((b - a) / 86400000) + 1));
 }
-function starsStr(n) { return '★'.repeat(n) + '☆'.repeat(3 - n); }
+function starsRow(n, size = 20) {
+  const w = h('span', { class: 'stars-row', role: 'img', 'aria-label': n + ' trên 3 sao' });
+  for (let i = 0; i < 3; i++) { const s = icon('star', size); if (i < n) s.classList.add('on'); w.appendChild(s); }
+  return w;
+}
 function voiceOn() { return store.get().settings.voice; }
+const nextTopic = () => TOPICS.find((t) => !store.topic(t.id).stars);
 
 // ---------- Khung màn hình ----------
 function screen(cls, ...kids) { clear(app); const s = h('div', { class: 'screen ' + cls }, ...kids); app.appendChild(s); window.scrollTo(0, 0); return s; }
 function topbar(title, back) {
   return h('header', { class: 'topbar' },
-    back ? h('a', { class: 'btn-icon back', href: back, 'aria-label': 'Quay lại' }, '←') : h('span', { class: 'spacer' }),
+    back ? h('a', { class: 'btn-icon back', href: back, 'aria-label': 'Quay lại' }, icon('back', 22)) : h('span', { class: 'spacer' }),
     h('h1', null, title), h('span', { class: 'spacer' }));
 }
 
@@ -36,31 +42,40 @@ function viewHome() {
   const sp = speechStatus();
   const today = todayNo();
   const wrongN = st.wrong.length;
-  const owl = mascotSVG('idle');
-  const hello = h('div', { class: 'hero' },
-    h('div', { class: 'hero-owl' }, owl),
-    h('div', { class: 'hero-text' }, h('div', { class: 'hello' }, 'Cùng ôn Toán lớp 3!'), h('div', { class: 'sub' }, 'Ôn thi học kì 1 · thi ngày 27/11'),
-      h('div', { class: 'pills' }, h('span', { class: 'pill' }, '⭐ ' + store.totalStars()), h('span', { class: 'pill' }, '🔥 ' + (st.streak.count || 1) + ' ngày'))));
-  const note = (!sp.supported || !sp.hasVietnamese) ? h('div', { class: 'note' }, '🔇 Máy này chưa có giọng đọc tiếng Việt. Con vẫn học được nhờ chữ và hình nhé. Bố mẹ có thể bật giọng tiếng Việt trong Cài đặt → Trợ năng → Nội dung được đọc.') : null;
+  const doneN = TOPICS.filter((t) => store.topic(t.id).stars > 0).length;
+  const pct = TOPICS.length ? Math.round((doneN / TOPICS.length) * 100) : 0;
+  const hero = h('div', { class: 'hero' },
+    h('div', { class: 'hero-owl' }, mascotSVG('idle')),
+    h('div', { class: 'hero-text' }, h('div', { class: 'hello' }, 'Chào con!'), h('div', { class: 'sub' }, 'Ôn Toán học kì 1', h('br'), 'Thi ngày 27/11'),
+      h('div', { class: 'pills' }, h('span', { class: 'pill' }, icon('star', 20), store.totalStars()), h('span', { class: 'pill fire' }, icon('flame', 20), (st.streak.count || 1) + ' ngày')),
+      h('div', { class: 'hero-prog', role: 'progressbar', 'aria-valuemin': 0, 'aria-valuemax': 100, 'aria-valuenow': pct }, h('i', { style: { width: pct + '%' } })),
+      h('div', { class: 'sub', style: { marginTop: '4px', fontSize: '14px' } }, 'Đã luyện ' + doneN + '/' + TOPICS.length + ' chủ đề')));
+  const nt = nextTopic();
+  const next = nt
+    ? h('a', { class: 'next', href: '#/topic/' + nt.id }, topicIcon(nt.no), h('div', { class: 'next-body' }, h('div', { class: 'next-label' }, doneN ? 'Học tiếp' : 'Bắt đầu nào'), h('div', { class: 'next-title' }, 'CĐ' + nt.no + ' · ' + nt.title)), h('span', { class: 'next-go' }, icon('play', 26)))
+    : h('a', { class: 'next', href: '#/exam' }, h('span', { class: 'ticon', style: '--tile:#EFE8FF;color:#7B4DE8' }, icon('exam', 28)), h('div', { class: 'next-body' }, h('div', { class: 'next-label' }, 'Con đã luyện hết'), h('div', { class: 'next-title' }, 'Làm đề thử 20 câu')), h('span', { class: 'next-go' }, icon('play', 26)));
+  const note = (!sp.supported || !sp.hasVietnamese) ? h('div', { class: 'note' }, 'Máy này chưa có giọng đọc tiếng Việt. Con vẫn học được nhờ chữ và hình nhé. Bố mẹ có thể bật giọng tiếng Việt trong Cài đặt → Trợ năng → Nội dung được đọc.') : null;
   const days = h('div', { class: 'days' });
   for (let n = 1; n <= 6; n++) {
     const ts = dayOf(n);
-    const done = ts.length ? ts.filter((t) => store.topic(t.id).stars > 0).length : 0;
-    const el = h('a', { class: 'day' + (n === today ? ' today' : '') + (n === 6 ? ' final' : ''), href: '#/day/' + n },
-      h('div', { class: 'day-n' }, n === 6 ? '🏁' : 'Ngày ' + n),
-      h('div', { class: 'day-body' }, h('div', { class: 'day-t' }, n === today ? h('span', { class: 'tag' }, 'Hôm nay') : null, DAY_TITLES[n]),
-        n === 6 ? h('div', { class: 'day-s' }, 'Ôn câu sai + đề thử 20 câu') : h('div', { class: 'day-s' }, ts.length ? done + '/' + ts.length + ' chủ đề đã luyện' : 'Đang chuẩn bị…')),
-      h('span', { class: 'chev' }, '›'));
-    days.appendChild(el);
+    const done = ts.filter((t) => store.topic(t.id).stars > 0).length;
+    const all = n < 6 && ts.length > 0 && done === ts.length;
+    const badge = n === 6 ? icon('flag', 22) : all ? icon('check', 24) : String(n);
+    const sub = n === 6 ? h('div', { class: 'day-s' }, 'Ôn câu sai · đề thử 20 câu')
+      : h('div', { class: 'day-s' }, h('span', { class: 'dot-row' }, ts.map((t) => h('i', { class: store.topic(t.id).stars ? 'on' : '' }))), ts.length ? done + '/' + ts.length + ' chủ đề' : 'Đang chuẩn bị…');
+    days.appendChild(h('a', { class: 'day' + (n === today ? ' today' : '') + (all ? ' done' : ''), href: '#/day/' + n },
+      h('div', { class: 'day-n' }, badge),
+      h('div', { class: 'day-body' }, n === today ? h('span', { class: 'tag' }, 'Hôm nay') : null, h('div', { class: 'day-t' }, (n < 6 ? 'Ngày ' + n + ' · ' : '') + DAY_TITLES[n]), sub),
+      h('span', { class: 'chev' }, icon('chev', 22))));
   }
   const quick = h('div', { class: 'quick' },
-    h('a', { class: 'qbtn' + (wrongN ? ' hot' : ''), href: '#/review' }, h('span', { class: 'qi' }, '🧩'), h('span', null, 'Ôn câu sai'), h('b', null, wrongN)),
-    h('a', { class: 'qbtn', href: '#/exam' }, h('span', { class: 'qi' }, '📝'), h('span', null, 'Đề thử'), h('b', null, st.exam.best ? st.exam.best + '/20' : '')));
-  const settings = h('details', { class: 'settings' }, h('summary', null, '⚙️ Cài đặt'),
-    h('label', { class: 'toggle' }, h('input', { type: 'checkbox', checked: voiceOn() ? 'checked' : null, onchange: (e) => { store.setSetting('voice', e.target.checked); } }), ' Tự động đọc lời giải'),
-    h('label', { class: 'toggle' }, h('input', { type: 'checkbox', checked: vctx.reduced ? 'checked' : null, onchange: (e) => { vctx.reduced = e.target.checked; vctx.lite = e.target.checked; store.setSetting('lite', e.target.checked); } }), ' Giảm hiệu ứng chuyển động'),
+    h('a', { class: 'qbtn' + (wrongN ? ' hot' : ''), href: '#/review' }, h('span', { class: 'qi' }, icon('review', 24)), h('span', null, 'Ôn câu sai'), h('b', null, wrongN)),
+    h('a', { class: 'qbtn exam', href: '#/exam' }, h('span', { class: 'qi' }, icon('exam', 24)), h('span', null, 'Đề thử'), st.exam.best ? h('b', null, st.exam.best + '/20') : null));
+  const settings = h('details', { class: 'settings' }, h('summary', null, icon('sliders', 22), 'Cài đặt'),
+    h('label', { class: 'toggle' }, h('input', { type: 'checkbox', checked: voiceOn() ? 'checked' : null, onchange: (e) => { store.setSetting('voice', e.target.checked); } }), 'Tự động đọc lời giải'),
+    h('label', { class: 'toggle' }, h('input', { type: 'checkbox', checked: vctx.reduced ? 'checked' : null, onchange: (e) => { vctx.reduced = e.target.checked; vctx.lite = e.target.checked; store.setSetting('lite', e.target.checked); } }), 'Giảm hiệu ứng chuyển động'),
     h('button', { class: 'btn-ghost small', type: 'button', onclick: () => { if (confirm('Xoá toàn bộ tiến độ?')) { store.reset(); viewHome(); } } }, 'Xoá tiến độ'));
-  screen('home', hello, note, h('h2', { class: 'sec' }, 'Lộ trình ôn tập'), days, quick, settings, h('footer', { class: 'foot' }, 'Bám theo tài liệu ôn tập của lớp. Chúc con thi tốt! 🍀'));
+  screen('home', hero, note, next, quick, h('h2', { class: 'sec' }, 'Lộ trình ôn tập'), days, settings, h('footer', { class: 'foot' }, 'Chúc con ôn tập vui và thi thật tốt!'));
 }
 
 // ---------- Ngày ----------
@@ -74,15 +89,16 @@ function viewDay(n) {
 function topicCard(t) {
   const rec = store.topic(t.id);
   return h('a', { class: 'tcard', href: '#/topic/' + t.id },
-    h('div', { class: 'ticon' }, t.icon || '📘'),
+    topicIcon(t.no),
     h('div', { class: 'tbody' }, h('div', { class: 'tt' }, 'CĐ' + t.no + ' · ' + t.title), h('div', { class: 'ts' }, t.intro || '')),
-    h('div', { class: 'tstars ' + (rec.stars ? 'has' : '') }, starsStr(rec.stars || 0)));
+    starsRow(rec.stars || 0, 18));
 }
 function viewFinalDay() {
+  const tile = (bg, fg, ic) => h('span', { class: 'ticon', style: '--tile:' + bg + ';color:' + fg }, icon(ic, 28));
   screen('dayview', topbar('Ngày 6 · Tổng ôn', '#/'), h('p', { class: 'lead' }, 'Không học kiến thức mới. Làm lại câu sai, rồi thử sức với đề 20 câu.'),
     h('div', { class: 'topics' },
-      h('a', { class: 'tcard', href: '#/review' }, h('div', { class: 'ticon' }, '🧩'), h('div', { class: 'tbody' }, h('div', { class: 'tt' }, 'Ôn câu sai'), h('div', { class: 'ts' }, store.get().wrong.length + ' câu đang chờ con')), h('div', { class: 'tstars' }, '›')),
-      h('a', { class: 'tcard', href: '#/exam' }, h('div', { class: 'ticon' }, '📝'), h('div', { class: 'tbody' }, h('div', { class: 'tt' }, 'Đề thử 20 câu'), h('div', { class: 'ts' }, 'Làm xong mới xem đáp án. Không bị trừ gì cả!')), h('div', { class: 'tstars' }, '›'))));
+      h('a', { class: 'tcard', href: '#/review' }, tile('#FFF0DE', '#E8761A', 'review'), h('div', { class: 'tbody' }, h('div', { class: 'tt' }, 'Ôn câu sai'), h('div', { class: 'ts' }, store.get().wrong.length + ' câu đang chờ con')), h('span', { class: 'chev' }, icon('chev', 22))),
+      h('a', { class: 'tcard', href: '#/exam' }, tile('#EFE8FF', '#7B4DE8', 'exam'), h('div', { class: 'tbody' }, h('div', { class: 'tt' }, 'Đề thử 20 câu'), h('div', { class: 'ts' }, 'Làm xong mới xem đáp án. Không bị trừ gì cả!')), h('span', { class: 'chev' }, icon('chev', 22)))));
 }
 
 // ---------- Học chủ đề ----------
@@ -90,13 +106,15 @@ function viewTopic(id) {
   const t = TOPICS.find((x) => x.id === id);
   if (!t) return viewHome();
   const rec = store.topic(id);
+  const g = groupOf(t.no);
   const cards = h('div', { class: 'cards' }, (t.remember || []).map((r, i) =>
-    h('div', { class: 'rcard' }, h('div', { class: 'rnum' }, i + 1), h('div', { class: 'rbody' }, h('p', null, r.text), r.visual ? h('div', { class: 'rvis' }, renderVisual(r.visual)) : null), speakerBtn(() => r.say || r.text))));
-  const lessonBtn = (t.lesson && t.lesson.length) ? h('button', { class: 'btn-secondary big', type: 'button', onclick: () => { rec.learned = true; store.save(); openExplain({ title: 'Xem bài giảng', steps: t.lesson, voice: voiceOn(), finishLabel: 'Xong' }); } }, '🎬 Xem bài giảng hoạt hình') : null;
+    h('div', { class: 'rcard' }, h('div', { class: 'rnum', style: '--g:' + g.c }, i + 1), h('div', { class: 'rbody' }, h('p', null, r.text), r.visual ? h('div', { class: 'rvis' }, renderVisual(r.visual)) : null), speakerBtn(() => r.say || r.text))));
+  const ti = topicIcon(t.no, 56); ti.classList.add('big');
+  const lessonBtn = (t.lesson && t.lesson.length) ? h('button', { class: 'btn-secondary', type: 'button', onclick: () => { rec.learned = true; store.save(); openExplain({ title: 'Bài giảng', steps: t.lesson, voice: voiceOn(), finishLabel: 'Xong' }); } }, icon('film', 24), 'Bài giảng') : null;
   screen('topic', topbar('CĐ' + t.no + ' · ' + (t.short || t.title), '#/day/' + t.day),
-    h('div', { class: 'thead' }, h('div', { class: 'ticon big' }, t.icon || '📘'), h('div', null, h('h2', null, t.title), h('div', { class: 'tstars has' }, starsStr(rec.stars || 0)))),
-    h('h3', { class: 'sec' }, 'Điều cần nhớ'), cards, lessonBtn,
-    h('a', { class: 'btn-primary big block', href: '#/practice/' + id }, '✏️ Luyện tập'));
+    h('div', { class: 'thead', style: '--tile:' + g.soft + ';--ink:' + g.ink }, ti, h('div', null, h('div', { class: 'chip-g' }, g.name), h('h2', null, t.title), starsRow(rec.stars || 0, 22))),
+    h('h3', { class: 'sec' }, 'Điều cần nhớ'), cards,
+    h('div', { class: 'actionbar' }, lessonBtn, h('a', { class: 'btn-primary', href: '#/practice/' + id }, icon('pencil', 24), 'Luyện tập')));
 }
 
 // ---------- Phiên luyện tập ----------
@@ -116,7 +134,7 @@ function startSession(opts) {
 
   function header() {
     const total = S.queue.length;
-    return h('header', { class: 'topbar pr' }, h('button', { class: 'btn-icon back', type: 'button', 'aria-label': 'Thoát', onclick: () => { if (confirm('Thoát bài luyện tập?')) { stopSpeech(); location.hash = opts.back || '#/'; } } }, '✕'),
+    return h('header', { class: 'topbar pr' }, h('button', { class: 'btn-icon back', type: 'button', 'aria-label': 'Thoát', onclick: () => { if (confirm('Thoát bài luyện tập?')) { stopSpeech(); location.hash = opts.back || '#/'; } } }, icon('close', 22)),
       h('div', { class: 'progress', role: 'progressbar', 'aria-valuemin': 0, 'aria-valuemax': total, 'aria-valuenow': S.idx }, h('i', { style: { width: Math.round((S.idx / total) * 100) + '%' } })),
       h('span', { class: 'count' }, Math.min(S.idx + 1, total) + '/' + total));
   }
@@ -272,13 +290,13 @@ function viewExam() {
 // ---------- Kết quả ----------
 function viewResult({ title, sm, stars, back, again, exam }) {
   const owl = mascotSVG(stars === 3 || (exam && exam.correct / exam.total >= 0.8) ? 'cheer' : 'happy');
-  const msg = exam ? ('Đúng ' + exam.correct + '/' + exam.total + ' câu') : (stars ? starsStr(stars) : 'Xong rồi!');
+  const msg = exam ? ('Đúng ' + exam.correct + '/' + exam.total + ' câu') : (stars ? '' : 'Xong rồi!');
   const wrongList = exam ? sm.results.filter((r) => !r.correct) : [];
   const sub = exam ? (wrongList.length ? 'Xem lại các câu chưa đúng để hiểu vì sao nhé.' : 'Con làm đúng hết! Tuyệt vời!') : (sm.total ? 'Đúng ngay lần đầu: ' + sm.firstTry + '/' + sm.total + ' câu' : '');
-  const exWrap = wrongList.length ? h('div', { class: 'wlist' }, h('h3', { class: 'sec' }, 'Các câu cần xem lại'), wrongList.map((r, i) => h('button', { class: 'wrow', type: 'button', onclick: () => openExplain({ title: 'Câu ' + (i + 1), steps: [{ text: r.item.prompt, visual: r.item.visual }].concat((r.item.explain && r.item.explain.steps) || []), voice: voiceOn() }) }, h('span', null, (i + 1) + '. ' + (() => { const q = String(r.item.prompt).split('\n')[0]; return q.length > 56 ? q.slice(0, 55) + '…' : q; })()), h('span', { class: 'chev' }, 'Xem vì sao ›')))) : null;
+  const exWrap = wrongList.length ? h('div', { class: 'wlist' }, h('h3', { class: 'sec' }, 'Các câu cần xem lại'), wrongList.map((r, i) => h('button', { class: 'wrow', type: 'button', onclick: () => openExplain({ title: 'Câu ' + (i + 1), steps: [{ text: r.item.prompt, visual: r.item.visual }].concat((r.item.explain && r.item.explain.steps) || []), voice: voiceOn() }) }, h('span', null, (i + 1) + '. ' + (() => { const q = String(r.item.prompt).split('\n')[0]; return q.length > 56 ? q.slice(0, 55) + '…' : q; })()), h('span', { class: 'more' }, 'Xem vì sao', icon('chev', 16))))) : null;
   const mids = !exam && sm.wrongs.length ? h('p', { class: 'center sub' }, 'Có ' + sm.wrongs.length + ' câu được lưu vào "Ôn câu sai" để luyện lại.') : null;
-  screen('result', h('div', { class: 'res-owl' }, owl), h('h2', { class: 'center' }, title), h('div', { class: 'res-score ' + (stars ? 'stars' : '') }, msg), h('p', { class: 'center sub' }, sub), mids, exWrap,
-    h('a', { class: 'btn-primary big block', href: back }, 'Tiếp tục'), h('a', { class: 'btn-ghost block', href: again }, 'Làm lại'));
+  screen('result', h('div', { class: 'res-owl' }, owl), h('h2', { class: 'center' }, stars ? ['', 'Cố gắng tốt!', 'Giỏi lắm!', 'Tuyệt vời!'][stars] : title), stars ? h('p', { class: 'center sub' }, title) : null, (stars ? (() => { const r = h('div', { class: 'res-stars' }); for (let i = 0; i < 3; i++) { const si = icon('star', 52); if (i < stars) si.classList.add('on'); r.appendChild(si); } return r; })() : h('div', { class: 'res-score' }, msg)), h('p', { class: 'center sub' }, sub), mids, exWrap,
+    h('a', { class: 'btn-primary big block', href: back }, 'Tiếp tục'), h('a', { class: 'btn-ghost big block', href: again }, 'Làm lại'));
 }
 
 // ---------- Bộ định tuyến ----------

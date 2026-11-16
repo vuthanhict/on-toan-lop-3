@@ -1,6 +1,7 @@
 // UI dùng chung + các kiểu tương tác (chọn / chạm / bấm số — không gõ chữ)
 import { renderVisual, vctx } from '../visuals/index.js';
 import { speak } from './speech.js';
+import { icon } from './icons.js';
 
 export function h(tag, attrs, ...kids) {
   const el = document.createElement(tag);
@@ -23,7 +24,7 @@ const PAL = vctx.palette;
 const norm = (s) => String(s == null ? '' : s).replace(/\s+/g, '').replace(/[-–]/g, '−');
 
 export function speakerBtn(getText, cls = '') {
-  return h('button', { class: 'btn-icon speaker ' + cls, type: 'button', 'aria-label': 'Nghe đọc', onclick: (e) => { e.stopPropagation(); speak(getText()); } }, '🔊');
+  return h('button', { class: 'btn-icon speaker ' + cls, type: 'button', 'aria-label': 'Nghe đọc', onclick: (e) => { e.stopPropagation(); speak(getText()); } }, icon('speaker', 22));
 }
 
 function promptBlock(item) {
@@ -112,8 +113,8 @@ function viewTF(item) {
   let ans = null, rsel = null;
   const reasons = item.reasons || [];
   const row = h('div', { class: 'tf-row' });
-  const bT = h('button', { class: 'choice tf', type: 'button' }, h('span', { class: 'big' }, '✔'), 'Đúng');
-  const bF = h('button', { class: 'choice tf', type: 'button' }, h('span', { class: 'big' }, '✘'), 'Sai');
+  const bT = h('button', { class: 'choice tf', type: 'button' }, icon('check', 28), 'Đúng');
+  const bF = h('button', { class: 'choice tf', type: 'button' }, icon('close', 28), 'Sai');
   row.append(bT, bF);
   const rbox = h('div', { class: 'choices list reasons', hidden: true });
   const rtitle = h('div', { class: 'sub', hidden: true }, 'Vì sao? Chọn lý do đúng:');
@@ -174,7 +175,7 @@ function viewNumpad(item) {
     paint(); impl.notify();
   };
   const keys = ['1', '2', '3', '4', '5', '6', '7', '8', '9', allowNeg ? '−' : '', '0', '⌫'];
-  const pad = h('div', { class: 'numpad' }, keys.map((k) => k ? h('button', { class: 'key' + (k === '⌫' ? ' key-del' : ''), type: 'button', 'aria-label': k === '⌫' ? 'Xoá' : k, onclick: () => press(k) }, k) : h('span', { class: 'key-empty' })));
+  const pad = h('div', { class: 'numpad' }, keys.map((k) => k ? h('button', { class: 'key' + (k === '⌫' ? ' key-del' : ''), type: 'button', 'aria-label': k === '⌫' ? 'Xoá' : k, onclick: () => press(k) }, k === '⌫' ? icon('backspace', 28) : k) : h('span', { class: 'key-empty' })));
   const root = h('div', { class: 'item-body' }, slotBox, pad);
   const impl = {
     locked: false,
@@ -214,7 +215,7 @@ function viewOrder(item) {
     items.filter((x) => !seq.includes(x.id)).forEach((x) => pool.appendChild(h('button', { class: 'chip', type: 'button', onclick: () => { if (!impl.locked && seq.length < items.length) { seq.push(x.id); paint(); impl.notify(); } } }, x.text)));
   }
   const root = h('div', { class: 'item-body' }, h('div', { class: 'sub' }, 'Chạm lần lượt theo thứ tự:'), seqBox, pool,
-    h('button', { class: 'btn-ghost small', type: 'button', onclick: () => { if (!impl.locked) { seq.length = 0; paint(); impl.notify(); } } }, '↺ Xếp lại'));
+    h('button', { class: 'btn-ghost small', type: 'button', onclick: () => { if (!impl.locked) { seq.length = 0; paint(); impl.notify(); } } }, 'Xếp lại'));
   const impl = {
     locked: false,
     ready: () => seq.length === items.length,
@@ -306,11 +307,11 @@ export function openExplain({ title = 'Vì sao thế nhỉ?', steps, voice = tru
   const vis = h('div', { class: 'sheet-visual' });
   const textBox = h('div', { class: 'sheet-text' });
   const dots = h('div', { class: 'dots' });
-  const btnPrev = h('button', { class: 'btn-ghost', type: 'button' }, '◀ Trước');
-  const btnNext = h('button', { class: 'btn-primary', type: 'button' }, 'Tiếp ▶');
-  const btnSay = h('button', { class: 'btn-icon', type: 'button', 'aria-label': 'Nghe' }, '🔊');
-  const btnReplay = h('button', { class: 'btn-icon', type: 'button', 'aria-label': 'Xem lại hoạt hình' }, '↻');
-  const btnX = h('button', { class: 'btn-icon close', type: 'button', 'aria-label': 'Đóng' }, '✕');
+  const btnPrev = h('button', { class: 'btn-ghost', type: 'button' }, icon('back', 22), 'Trước');
+  const btnNext = h('button', { class: 'btn-primary', type: 'button' });
+  const btnSay = h('button', { class: 'btn-icon', type: 'button', 'aria-label': 'Nghe' }, icon('speaker', 24));
+  const btnReplay = h('button', { class: 'btn-icon', type: 'button', 'aria-label': 'Xem lại hoạt hình' }, icon('replay', 24));
+  const btnX = h('button', { class: 'btn-icon close', type: 'button', 'aria-label': 'Đóng' }, icon('close', 22));
   sheet.append(h('div', { class: 'sheet-head' }, h('h3', null, title), btnX), h('div', { class: 'sheet-grid' }, vis, h('div', { class: 'sheet-side' }, textBox, h('div', { class: 'sheet-tools' }, btnSay, btnReplay), dots)), h('div', { class: 'sheet-nav' }, btnPrev, btnNext));
   ov.appendChild(sheet);
   let i = 0, visEl = null;
@@ -327,7 +328,7 @@ export function openExplain({ title = 'Vì sao thế nhỉ?', steps, voice = tru
     btnReplay.hidden = !s.visual;
     clear(dots); stepsOk.forEach((_, j) => dots.appendChild(h('span', { class: 'dot' + (j === i ? ' on' : j < i ? ' past' : '') })));
     btnPrev.disabled = i === 0;
-    btnNext.textContent = i === stepsOk.length - 1 ? finishLabel + ' ✔' : 'Tiếp ▶';
+    clear(btnNext); if (i === stepsOk.length - 1) btnNext.append(icon('check', 24), finishLabel); else btnNext.append('Tiếp', icon('chev', 22));
     if (speakIt && voice) speak(s.say || s.text);
   }
   const close = () => { speak(''); ov.remove(); document.body.classList.remove('no-scroll'); document.removeEventListener('keydown', onKey); onClose && onClose(); };
