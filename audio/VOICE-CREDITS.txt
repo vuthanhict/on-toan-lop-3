@@ -1,0 +1,4 @@
+GIỌNG ĐỌC (ghi công theo giấy phép)
+Âm thanh được tạo bằng Piper TTS (https://github.com/rhasspy/piper) với mô hình vi_VN-vais1000-medium trong kho rhasspy/piper-voices.
+Dữ liệu giọng: VAIS-1000 Vietnamese Speech Synthesis Corpus (IEEE DataPort, DOI 10.21227/H2B887), giấy phép CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/). Đã thay đổi: tổng hợp bằng mô hình, chuẩn hoá âm lượng, cắt lặng, nén MP3.
+Lưu ý: mô hình được tinh chỉnh từ giọng Lessac (Blizzard 2013, giấy phép chỉ nghiên cứu) nên điều kiện sử dụng bản phái sinh chưa rõ hoàn toàn; xem tools/tts/README.md.
