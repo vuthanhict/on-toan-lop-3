@@ -28,7 +28,7 @@
   --sh-card:0 1px 0 rgba(38,50,80,.05),0 8px 20px rgba(38,50,80,.07);
   --font-ui:"Nunito",ui-rounded,"SF Pro Rounded",system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
   --font-h:"Baloo 2","Nunito",ui-rounded,system-ui,sans-serif;
-  --sab:env(safe-area-inset-bottom,0px); --sat:env(safe-area-inset-top,0px);
+  --sab:env(safe-area-inset-bottom,0px); --sat:env(safe-area-inset-top,0px); --bar-h:calc(84px + var(--sab));
   color-scheme:light;
 }
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
@@ -45,8 +45,10 @@ h1,h2,h3{font-family:var(--font-h);font-weight:800;line-height:1.15;letter-spaci
 :focus-visible{outline:3px solid var(--c-primary);outline-offset:2px;border-radius:10px}
 #app{max-width:560px;margin:0 auto;min-height:100dvh}
 .loading{padding:42vh 20px 0;text-align:center;color:var(--c-sub);font-weight:800}
-.screen{padding:calc(var(--sat) + 10px) 16px calc(28px + var(--sab));animation:rise .3s ease both}
+.screen{padding:calc(var(--sat) + 10px) 16px calc(28px + var(--sab));animation:fadein .3s ease both}
 @keyframes rise{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+/* LƯU Ý: không dùng transform có giữ trạng thái cuối (fill both) trên phần tử chứa phần tử position:fixed — nó biến thành khung chứa và làm thanh nút/bàn phím mất neo */
+@keyframes fadein{from{opacity:0}to{opacity:1}}
 .ic{display:inline-flex;vertical-align:middle;flex:none}
 .center{text-align:center}.sub{color:var(--c-sub);font-size:16px;font-weight:700}
 .lead{font-size:17px;color:var(--c-sub);margin:2px 2px 14px;font-weight:700}
@@ -392,7 +394,7 @@ h1,h2,h3{font-family:var(--font-h);font-weight:800;line-height:1.15;letter-spaci
 .choice.wrong{animation:cnudge .35s}
 @keyframes cpop{0%{transform:scale(1)}45%{transform:scale(1.05)}100%{transform:scale(1)}}
 @keyframes cnudge{20%,60%{transform:translateX(-5px)}40%,80%{transform:translateX(5px)}}
-.pr-main{animation:qin .32s ease both}
+.item-q,.item-a .choices,.item-a .tf-row,.item-a .match,.item-a .buckets,.item-a .seq,.item-a .chips{animation:qin .32s ease both}
 @keyframes qin{from{opacity:0;transform:translateX(24px)}to{opacity:1;transform:none}}
 .progress{position:relative;height:22px;background:var(--track)}
 .ptext{position:absolute;right:3px;top:2px;bottom:2px;padding:0 9px;border-radius:99px;background:var(--c-card);font-family:var(--font-h);font-weight:800;font-size:12.5px;line-height:18px;color:var(--c-sub)}
@@ -409,8 +411,130 @@ html.eye body::after{content:"";position:fixed;inset:0;pointer-events:none;z-ind
 .radio-row input:focus-visible+span{outline:3px solid var(--blue);outline-offset:2px}
 .set-label{font-weight:800;font-size:16px;margin:8px 0 6px;color:var(--ink-2)}
 
+
+/* ===== Neo & gọn màn dài ===== */
+/* thanh tiêu đề dính trên cùng ở mọi màn */
+.topbar{position:sticky;top:0;z-index:6;background:var(--c-bg);margin:calc(-10px - var(--sat)) -16px 8px;padding:calc(var(--sat) + 8px) 16px 8px}
+.topbar.pr{margin:calc(-10px - var(--sat)) -16px 6px;padding:calc(var(--sat) + 8px) 16px 8px}
+
+/* thanh điều hướng đáy */
+.tabbar{position:fixed;left:0;right:0;bottom:0;z-index:30;max-width:560px;margin:0 auto;display:flex;gap:4px;padding:6px 8px calc(6px + var(--sab));background:rgba(255,254,251,.96);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);border-top:2px solid var(--line);box-shadow:0 -6px 18px rgba(38,50,80,.06)}
+.tab{flex:1;display:flex;flex-direction:column;align-items:center;gap:1px;padding:2px 0;color:var(--ink-3);font-family:var(--font-h);font-weight:800;font-size:12.5px;line-height:1.1}
+.tab-ic{position:relative;display:grid;place-items:center;width:56px;height:34px;border-radius:17px;transition:background .15s}
+.tab.on{color:var(--blue-d)}.tab.on .tab-ic{background:var(--blue-s)}
+.tab:active .tab-ic{transform:scale(.94)}
+.tab-ic b{position:absolute;top:-3px;right:6px;min-width:19px;height:19px;padding:0 5px;border-radius:99px;background:var(--coral-d);color:#fff;font-size:11.5px;line-height:19px;text-align:center}
+.screen.has-tabs{padding-bottom:calc(96px + var(--sab))}
+body.has-tabbar .toast{bottom:calc(100px + var(--sab))}
+
+/* trang chủ: thanh tiến độ dính + thẻ chào gọn */
+.screen.home{padding-top:0}
+.hud{position:sticky;top:0;z-index:6;display:flex;align-items:center;gap:10px;margin:0 -16px 10px;padding:calc(var(--sat) + 8px) 16px 8px;background:var(--c-bg);border-bottom:2px solid transparent}
+.hud-dino{width:42px;flex:none}.hud-mid{flex:1;min-width:0}
+.hud-lv{font-family:var(--font-h);font-weight:800;font-size:15px;line-height:1.15;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.xp-bar.slim{height:10px;margin-top:4px;background:var(--track)}.xp-bar.slim i{background:linear-gradient(90deg,var(--gold-m),var(--gold))}
+.hud .coin-chip{font-size:15px;padding:0 9px 0 5px}.hud .coin-chip .ic svg{width:19px;height:19px}
+.pill.sm{font-size:15px;padding:0 9px 0 6px;background:var(--orange-s);color:var(--orange-i)}.pill.sm .ic{color:var(--orange)}
+a.hero.cta{color:#fff;margin-bottom:12px;padding:12px 14px}
+a.hero.cta .hero-owl{width:84px}
+a.hero.cta .hello{font-size:23px}
+a.hero.cta .sub{font-size:14.5px;margin-top:2px;line-height:1.3}
+.cta-title{font-family:var(--font-h);font-weight:800;font-size:18.5px;line-height:1.2;margin-top:5px}
+.cta-go{position:relative;z-index:1;display:grid;place-items:center;flex:none;width:54px;height:54px;border-radius:50%;background:#fff;color:var(--blue-d);box-shadow:0 4px 0 rgba(0,0,0,.18)}
+a.hero.cta:active .cta-go{transform:translateY(3px);box-shadow:0 1px 0 rgba(0,0,0,.18)}
+
+/* nhiệm vụ: gập lại, một dòng */
+details.quests{padding:0 14px}
+details.quests>summary{list-style:none;cursor:pointer}details.quests>summary::-webkit-details-marker{display:none}
+.q-head{display:flex;align-items:center;gap:12px;min-height:60px;margin:0}
+.q-title{flex:1;min-width:0;display:flex;flex-direction:column;gap:5px}.q-title b{font-family:var(--font-h);font-weight:800;font-size:18px;line-height:1.1}
+.q-segs{display:flex;gap:5px}.q-segs i{flex:1;max-width:46px;height:7px;border-radius:99px;background:var(--track)}.q-segs i.on{background:var(--green)}
+.q-count{font-family:var(--font-h);font-weight:800;color:var(--ink-2)}
+.q-chev{transition:transform .2s;color:var(--ink-3)}details[open]>.q-head .q-chev{transform:rotate(90deg)}
+details.quests[open]{padding-bottom:12px}
+details.quests .q-head h3{display:none}
+
+/* bản đồ: gấp theo ngày */
+.mapx{display:flex;flex-direction:column;gap:10px}
+.mday{background:var(--c-card);border:2px solid var(--line);border-radius:var(--r-lg);box-shadow:var(--sh-card);overflow:hidden}
+.mday.today{border-color:var(--orange-m)}
+.mday-h{display:flex;align-items:center;gap:12px;width:100%;min-height:68px;padding:10px 12px;text-align:left}
+.mday-h .mb-n{display:grid;place-items:center;width:38px;height:38px;border-radius:50%;background:var(--blue-s);color:var(--blue-d);font-family:var(--font-h);font-weight:800;font-size:19px;flex:none}
+.mday.today .mb-n{background:var(--orange-d);color:#fff}
+.mday-t{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}.mday-t b{font-family:var(--font-h);font-weight:800;font-size:17.5px;line-height:1.15}
+.mday-t small{display:flex;align-items:center;gap:8px;color:var(--ink-2);font-size:14px;font-weight:700}
+.mday-chev{transition:transform .2s;color:var(--ink-3)}.mday.open .mday-chev{transform:rotate(90deg)}
+.mday-b{display:none;position:relative;margin:0 8px}.mday.open .mday-b{display:block}
+.mday.open .mday-h{border-bottom:2px solid var(--line)}
+.map-path{position:absolute;inset:0}.map-path svg{width:100%;height:100%;display:block;overflow:visible}
+.map-head .sec{margin-top:18px}
+
+/* thẻ "Điều cần nhớ": vuốt ngang trên điện thoại */
+.sec-row{display:flex;align-items:baseline;justify-content:space-between}
+.ccount{font-family:var(--font-h);font-weight:800;color:var(--ink-2);font-size:15px}
+.cdots{display:flex;align-items:center;justify-content:center;gap:8px;margin:0}
+.cdots i{width:9px;height:9px;border-radius:50%;background:var(--edge);transition:all .2s;cursor:pointer}.cdots i.on{width:24px;border-radius:99px;background:var(--blue)}
+.screen.topic{padding-bottom:calc(var(--bar-h) + 14px)}
+.thead{margin:0 0 4px;padding:12px}
+@media (max-width:899px){
+  .cards{flex-direction:row;overflow-x:auto;scroll-snap-type:x mandatory;margin:0 -16px;padding:4px 16px 8px;scroll-padding:0 16px;gap:12px;align-items:flex-start;-webkit-overflow-scrolling:touch;scrollbar-width:none}
+  .cards::-webkit-scrollbar{display:none}
+  .rcard{flex:0 0 90%;scroll-snap-align:start;display:grid;grid-template-columns:auto 1fr auto;grid-template-rows:auto auto;gap:8px 10px;align-items:center;padding:12px}
+  .rcard .rnum{grid-column:1;grid-row:1}.rcard .btn-icon{grid-column:3;grid-row:1}
+  .rcard .rbody{grid-column:1/-1;grid-row:2}.rbody p{font-size:17.5px;line-height:1.45}
+  .rcard:only-child{flex-basis:100%}
+  .rvis .visual svg{max-height:min(34dvh,300px)}
+}
+@media (min-width:900px){.cdots,.ccount{display:none}}
+
+@media (max-width:899px){
+  .screen.topic .thead{padding:10px 12px;gap:12px;margin-bottom:0}
+  .screen.topic .thead .ticon.big{width:58px;height:58px;border-radius:18px}
+  .screen.topic .thead h2{font-size:20px}
+  .screen.topic .chip-g{margin:0 0 3px;padding:0 9px;font-size:12px}
+  .screen.topic .sec{margin:12px 2px 4px;font-size:19px}
+  .screen.topic .rvis{margin-top:8px;padding:6px}
+  .screen.topic .rvis .visual svg{max-height:min(30dvh,260px)}
+}
+/* tủ đồ: tab + xem trước gọn */
+.lk-top{gap:12px;margin-bottom:10px}.lk-prev,.screen.locker .lk-prev{width:112px}
+.seg-tabs{display:flex;gap:6px;padding:4px;background:var(--surface-2);border-radius:var(--r-md);margin:6px 0 12px;position:sticky;top:56px;z-index:4}
+.seg-tab{flex:1;min-height:44px;border-radius:12px;font-family:var(--font-h);font-weight:800;font-size:16px;color:var(--ink-2)}
+.seg-tab.on{background:var(--c-card);color:var(--blue-d);box-shadow:0 2px 8px rgba(38,50,80,.12)}
+.rules{margin:10px auto 6px;padding:0;list-style:none;max-width:340px}
+.rules li{position:relative;padding:8px 0 8px 30px;font-weight:700;font-size:17px}
+.rules li::before{content:"";position:absolute;left:4px;top:13px;width:14px;height:14px;border-radius:50%;background:var(--green)}
+
+/* luyện tập: bàn phím số cố định, khung phản hồi không che nội dung */
+.practice{padding-bottom:calc(var(--bar-h) + var(--dock-h,0px) + var(--fb-h,0px) + 24px)}
+.feedback{bottom:calc(var(--bar-h) + var(--dock-h,0px))}
+.item-visual .visual svg{max-height:min(40dvh,360px)}
+.choice{min-height:60px}
+.np-dock{width:100%}
+.choices.vis .choice{flex-direction:column;align-items:center;gap:6px;padding:10px 8px;text-align:center}
+.choices.vis .choice .ctext{width:100%}.choices.vis .choice .visual svg{max-height:120px}
+.np-dock.locked .numpad{display:none}
+@media (max-width:899px){
+  .practice .np-dock:not(.locked){position:fixed;left:0;right:0;bottom:var(--bar-h);z-index:6;max-width:560px;margin:0 auto;padding:8px 16px 8px;background:var(--c-bg);border-top:2px solid var(--line);box-shadow:0 -8px 20px rgba(38,50,80,.08)}
+  .practice .np-dock .slots{margin:0 0 4px}
+  .practice .np-dock .numpad{margin:2px auto 0;gap:6px}
+  .practice .np-dock .key{min-height:48px;font-size:26px}
+  .practice .np-dock .key[aria-label="−"]{font-size:32px}
+  .practice .np-dock .slot{min-height:52px;font-size:26px}
+  .practice .np-dock .slots.many .slot{min-height:54px;font-size:23px}
+}
+
+/* hộp giải thích: tiêu đề và nút Trước/Tiếp luôn nằm trong tầm tay */
+.sheet{padding-top:0;padding-bottom:0}
+.sheet-head{position:sticky;top:0;z-index:3;background:var(--c-bg);padding:14px 0 8px}
+.sheet-nav{position:sticky;bottom:0;z-index:3;background:var(--c-bg);padding:8px 0 calc(12px + var(--sab));box-shadow:0 -10px 14px -10px rgba(38,50,80,.12)}
+.sheet-visual .visual svg{max-height:min(36dvh,320px)}
+.screen.result.has-tabs{min-height:calc(100dvh - 0px)}
+
 /* ===== Máy tính bảng / máy tính ===== */
 @media (min-width:900px){
+  .mapx{max-width:620px;margin:0 auto}
+  .quests,.hero.cta{max-width:760px;margin-left:auto;margin-right:auto}
   #app{max-width:980px}
   body{font-size:19px}
   .screen{padding-left:28px;padding-right:28px}

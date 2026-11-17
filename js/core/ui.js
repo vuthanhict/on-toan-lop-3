@@ -59,7 +59,8 @@ function viewChoice(item) {
   const multi = item.type === 'multi';
   const sel = new Set();
   const dead = new Set();
-  const list = h('div', { class: 'choices ' + (item.layout === 'list' ? 'list' : (item.choices || []).every((c) => String(c.text).length <= 14 && !c.visual) ? 'grid2' : 'list') });
+  const hasVis = (item.choices || []).some((c) => c.visual);
+  const list = h('div', { class: 'choices ' + (item.layout === 'list' ? 'list' : hasVis ? 'grid2 vis' : (item.choices || []).every((c) => String(c.text).length <= 14) ? 'grid2' : 'list') });
   const btns = (item.choices || []).map((c, i) => {
     c._id = c.id || String(i);
     const b = h('button', { class: 'choice', type: 'button', 'data-id': c._id, 'aria-pressed': 'false' },
@@ -178,7 +179,8 @@ function viewNumpad(item) {
   };
   const keys = ['1', '2', '3', '4', '5', '6', '7', '8', '9', allowNeg ? '−' : '', '0', '⌫'];
   const pad = h('div', { class: 'numpad' }, keys.map((k) => k ? h('button', { class: 'key' + (k === '⌫' ? ' key-del' : ''), type: 'button', 'aria-label': k === '⌫' ? 'Xoá' : k, onclick: () => press(k) }, k === '⌫' ? icon('backspace', 28) : k) : h('span', { class: 'key-empty' })));
-  const root = h('div', { class: 'item-body' }, slotBox, pad);
+  const dock = h('div', { class: 'np-dock' }, slotBox, pad);
+  const root = h('div', { class: 'item-body' }, dock);
   const impl = {
     locked: false,
     ready: () => vals.every((v) => v.length > 0 && v !== '−'),
@@ -194,8 +196,8 @@ function viewNumpad(item) {
       }
       return { correct: okAll, why, code, chosen: vals.slice() };
     },
-    markWrong() { impl.locked = false; slotEls.forEach((e) => e.classList.add('shake')); setTimeout(() => slotEls.forEach((e) => e.classList.remove('shake')), 500); vals.fill(''); active = 0; paint(); impl.notify(); },
-    lock() { impl.locked = true; paint(); },
+    markWrong() { impl.locked = false; dock.classList.remove('locked'); slotEls.forEach((e) => e.classList.add('shake')); setTimeout(() => slotEls.forEach((e) => e.classList.remove('shake')), 500); vals.fill(''); active = 0; paint(); impl.notify(); },
+    lock() { impl.locked = true; dock.classList.add('locked'); paint(); },
   };
   paint();
   return makeCtl(item, root, impl);

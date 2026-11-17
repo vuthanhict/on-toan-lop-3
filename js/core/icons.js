@@ -25,6 +25,7 @@ const UI = {
   sound: '<path d="M4 10v4h3.5l5 4V6l-5 4H4z" fill="currentColor"/><path d="M16 9.2a4 4 0 0 1 0 5.6"/>',
   mute: '<path d="M4 10v4h3.5l5 4V6l-5 4H4z" fill="currentColor"/><path d="M16 9.5l5 5M21 9.5l-5 5"/>',
   gift: '<rect x="4" y="10" width="16" height="10" rx="2.5"/><path d="M3 10h18V7H3zM12 7v13"/><path d="M12 7C10.5 3.5 7 4 7 6s3 1 5 1zm0 0c1.5-3.5 5-3 5-1s-3 1-5 1z"/>',
+  map: '<path d="M9 4L3 6.5v13L9 17l6 3 6-2.5v-13L15 7z"/><path d="M9 4v13M15 7v13"/>',
   home: '<path d="M4 11l8-7 8 7M6 10v9h12v-9"/>',
 };
 export function icon(name, size = 24, cls = '') {
