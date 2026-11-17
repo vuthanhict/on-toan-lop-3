@@ -6,4 +6,5 @@ giải thích từng bước khi làm sai và giọng đọc tiếng Việt.
 - 16 chủ đề theo lộ trình 5 ngày + ngày tổng ôn, có "Ôn câu sai" và "Đề thử" 20 câu.
 - Mọi bài tập do người làm tự soạn lại; không chứa tài liệu gốc của nhà trường.
 - Chạy thẳng bằng trình duyệt, không cần cài đặt. Thử cục bộ: `python3 -m http.server` rồi mở `http://localhost:8000`.
+- Giọng đọc mp3 thu sẵn (Piper, mô hình vi_VN-vais1000-medium, dữ liệu VAIS-1000 CC BY 4.0): xem `audio/VOICE-CREDITS.txt`.
 - Kiểm thử bài sinh tự động: `node tests/test-gen.mjs`.

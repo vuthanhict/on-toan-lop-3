@@ -15,6 +15,33 @@ function twoCities(rng, tw) {
   return [nw, nc];
 }
 
+// ---- Công cụ cho bộ sinh bài (chống đoán mò) ----
+const NAMES = ['Mai', 'Nam', 'Lan', 'Hùng', 'Minh', 'An', 'Bình', 'Chi', 'Dũng', 'Hà', 'Khoa', 'Linh', 'Phúc', 'Quân', 'Thảo', 'Việt'];
+const candD = (v, code, why) => ({ v, w: W(deg(v), code, why) });
+// Chọn 3 đáp án nhiễu từ `pool` sao cho đáp án đúng có thứ hạng (bé → lớn) ngẫu nhiên đều: không bao giờ "luôn ở giữa".
+function rankPick(rng, right, pool) {
+  const seen = new Set([right]);
+  const P = pool.filter((p) => (seen.has(p.v) ? false : (seen.add(p.v), true)));
+  const lo = shuffle(rng, P.filter((p) => p.v < right)), hi = shuffle(rng, P.filter((p) => p.v > right));
+  const ok = [0, 1, 2, 3].filter((r) => lo.length >= r && hi.length >= 3 - r);
+  if (!ok.length) return shuffle(rng, P).slice(0, 3).map((p) => p.w);
+  const r = pick(rng, ok);
+  return [...lo.slice(0, r), ...hi.slice(0, 3 - r)].map((p) => p.w);
+}
+const thS = (sc, level, items, extra = {}) => ({ kind: 'thermo', min: sc.min, max: sc.max, step: sc.step, level, items, ...extra });
+const idOf = (v) => (v < 0 ? 'm' : 'p') + Math.abs(v);
+const WARM_C = ['Hà Nội', 'Huế', 'Đà Nẵng', 'Cần Thơ', 'Nha Trang', 'Hải Phòng', 'Vinh', 'Băng Cốc'];
+const COOL_C = ['Tô-ki-ô', 'Xơ-un', 'Pa-ri', 'Béc-lin', 'Bắc Kinh', 'Sa Pa', 'Đà Lạt', 'Mát-xcơ-va'];
+const TIMES = [['Buổi sáng', 'buổi trưa'], ['Lúc 6 giờ sáng', 'lúc 10 giờ sáng'], ['Đêm qua', 'sáng nay'], ['Chiều hôm qua', 'tối hôm qua']];
+// 4–5 nhiệt độ khác nhau (có ít nhất 2 số âm và 1 số không âm)
+function fewTemps(rng, n) {
+  for (let t = 0; t < 300; t++) {
+    const v = shuffle(rng, [-9, -8, -7, -6, -5, -4, -3, -2, -1, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9]).slice(0, n);
+    if (v.filter((x) => x < 0).length >= 2 && v.filter((x) => x >= 0).length >= 1) return v;
+  }
+  return [-7, -2, 0, 5].slice(0, n);
+}
+
 export default {
   id: 'cd02', no: 2, day: 1, title: 'Số âm và nhiệt độ', short: 'Số âm', icon: '🌡️',
   intro: 'Dưới 0 là lạnh, càng thấp càng lạnh. Muốn biết "hơn bao nhiêu độ", hãy nhảy qua số 0.',
@@ -161,7 +188,7 @@ export default {
 
   generators: [
     {
-      id: 'g2.1',
+      id: 'g2.1', covers: ['2.1'],
       make(rng) {
         for (let tries = 0; tries < 200; tries++) {
           const pool = shuffle(rng, [-9, -8, -7, -6, -5, -4, -3, -2, -1, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9]);
@@ -238,47 +265,74 @@ export default {
       make(rng) {
         const up = rng.next() < 0.5;
         let s, c;
-        if (up) { s = -int(rng, 2, 8); c = int(rng, -s + 1, -s + 8); } else { s = int(rng, 2, 8); c = int(rng, s + 1, s + 8); }
+        if (up) { s = -int(rng, 2, 9); c = int(rng, -s + 1, -s + 9); } else { s = int(rng, 2, 9); c = int(rng, s + 1, s + 9); }
         const dsig = up ? c : -c;
         const right = s + dsig;
-        const wrongs = up
-          ? [W(deg(s - dsig), 'NGƯỢC', 'Tăng là đi LÊN, không phải đi xuống.'), W(deg(Math.abs(s) + c), 'DẤU', `Con nhớ giữ dấu âm: ${f(s)} nằm dưới số 0.`), W(deg(-right), 'DẤU', `${c} − ${Math.abs(s)} = ${right} và mình đã vượt qua số 0, nên kết quả là số dương.`)]
-          : [W(deg(s + c), 'NGƯỢC', 'Giảm là đi XUỐNG, không phải đi lên.'), W(deg(-right), 'DẤU', `${c} − ${s} = ${-right}, nhưng mình đã xuống qua số 0, nên kết quả là số âm.`), W(deg(-(s + c)), 'DẤU', `${s} nằm TRÊN số 0 nên giảm là ${s} − ${c}, không phải −${s} − ${c}.`)];
-        const choices = shuffle(rng, [R(deg(right)), ...wrongs]);
+        const pool = up
+          ? [candD(s - dsig, 'NGƯỢC', 'Tăng là đi LÊN, không phải đi xuống.'),
+            candD(Math.abs(s) + c, 'DẤU', `Con nhớ giữ dấu âm: ${f(s)} nằm dưới số 0.`),
+            candD(-right, 'DẤU', `${c} − ${Math.abs(s)} = ${right} và mình đã vượt qua số 0, nên kết quả là số dương.`),
+            candD(c, 'ĐẾM', `Đây chỉ là số độ tăng thêm. Con phải bắt đầu từ ${f(s)} rồi mới tăng.`),
+            candD(right + 1, 'ĐẾM', 'Con đếm lệch một độ. Từ vạch 0 phải đếm đủ số độ còn lại.'),
+            candD(right - 1, 'ĐẾM', 'Con đếm lệch một độ. Từ vạch 0 phải đếm đủ số độ còn lại.'),
+            candD(s, 'ĐỌC', 'Đây là nhiệt độ lúc đầu. Đề hỏi nhiệt độ sau khi đã tăng.')]
+          : [candD(s + c, 'NGƯỢC', 'Giảm là đi XUỐNG, không phải đi lên.'),
+            candD(-right, 'DẤU', `${c} − ${s} = ${-right}, nhưng mình đã xuống qua số 0, nên kết quả là số âm.`),
+            candD(-(s + c), 'DẤU', `${s} nằm TRÊN số 0 nên giảm là ${s} − ${c}, không phải −${s} − ${c}.`),
+            candD(-c, 'ĐẾM', `Đây chỉ là số độ giảm. Con phải bắt đầu từ ${f(s)} rồi mới giảm.`),
+            candD(right + 1, 'ĐẾM', 'Con đếm lệch một độ. Từ vạch 0 phải đếm đủ số độ còn lại.'),
+            candD(right - 1, 'ĐẾM', 'Con đếm lệch một độ. Từ vạch 0 phải đếm đủ số độ còn lại.'),
+            candD(s, 'ĐỌC', 'Đây là nhiệt độ lúc đầu. Đề hỏi nhiệt độ sau khi đã giảm.')];
+        const choices = shuffle(rng, [R(deg(right)), ...rankPick(rng, right, pool)]);
         const lo = Math.min(s, right) - 1, hi = Math.max(s, right) + 1;
+        const [t0, t1] = pick(rng, TIMES), city = pick(rng, COLD);
         return {
           id: 'g2.3', src: '[biến thể mới]', type: 'choice', layout: 'grid2',
-          prompt: `Buổi sáng nhiệt độ là ${deg(s)}. Buổi trưa nhiệt độ ${up ? 'tăng' : 'giảm'} thêm ${c} độ. Nhiệt độ buổi trưa là bao nhiêu?`,
+          prompt: `${t0} ở ${city}, nhiệt độ là ${deg(s)}. Đến ${t1}, nhiệt độ ${up ? 'tăng' : 'giảm'} thêm ${c} độ. Nhiệt độ lúc đó là bao nhiêu?`,
           hint: `${up ? 'Tăng' : 'Giảm'} nghĩa là đi ${up ? 'lên' : 'xuống'}. Đi tới vạch 0 mất mấy độ?`,
           choices, meta: { s, c, up },
           explain: { steps: [
             { text: `Từ ${f(s)} ${up ? 'lên' : 'xuống'} tới 0 mất ${Math.abs(s)} độ.`, visual: { kind: 'numberline', min: lo, max: hi, step: 1, labelEvery: 1, points: [{ at: s }, { at: 0, color: '#F5893A' }], jumps: [{ from: s, to: 0, label: (up ? '+' : MI) + Math.abs(s) }], marker: { at: s, emoji: '🐸' }, anim: 'hop' } },
             { text: `Còn ${c} − ${Math.abs(s)} = ${c - Math.abs(s)} độ nữa, ${up ? 'đi lên' : 'đi xuống'} tới ${f(right)}.`, visual: { kind: 'numberline', min: lo, max: hi, step: 1, labelEvery: 1, points: [{ at: s }, { at: 0, color: '#F5893A' }, { at: right }], jumps: [{ from: s, to: 0, label: (up ? '+' : MI) + Math.abs(s) }, { from: 0, to: right, label: (up ? '+' : MI) + Math.abs(right) }] } },
-            { text: `Vậy nhiệt độ buổi trưa là ${deg(right)}.`, mark: 'good', visual: th(right, [{ label: 'Sáng', value: s }, { label: 'Trưa', value: right }]) },
+            { text: `Vậy nhiệt độ lúc đó là ${deg(right)}.`, mark: 'good', visual: th(right, [{ label: 'Trước', value: s }, { label: 'Sau', value: right }]) },
           ] },
         };
       },
       solve(item) { const { s, c, up } = item.meta; return deg(s + (up ? c : -c)); },
     },
     {
+      // Đọc nhiệt kế (nhiều thang chia)
       id: 'g2.4',
       make(rng) {
-        const t = pick(rng, [-8, -6, -4, -2, 2, 4, 6, 8]);
-        const choices = shuffle(rng, [
-          R(deg(t)),
-          W(deg(-t), 'DẤU', `Nhìn lại: thủy ngân ${t > 0 ? 'ở TRÊN' : 'ở DƯỚI'} vạch 0, nên nhiệt độ là số ${t > 0 ? 'dương' : 'âm'}.`),
-          W(deg(t + 1), 'ĐẾM', 'Mỗi vạch có ghi số cách nhau 2 độ. Đọc theo số ghi trên vạch.'),
-          W(deg(t - 1), 'ĐẾM', 'Mỗi vạch có ghi số cách nhau 2 độ. Đọc theo số ghi trên vạch.'),
+        const sc = pick(rng, [
+          { min: -10, max: 10, step: 2, vals: [-8, -6, -4, -2, 2, 4, 6, 8] },
+          { min: -20, max: 20, step: 5, vals: [-15, -10, -5, 5, 10, 15] },
+          { min: -12, max: 12, step: 3, vals: [-9, -6, -3, 3, 6, 9] },
+          { min: -30, max: 30, step: 10, vals: [-20, -10, 10, 20] },
         ]);
+        const t = pick(rng, sc.vals), st = sc.step;
+        const inR = (v) => v >= sc.min && v <= sc.max;
+        const lab = `Mỗi vạch có ghi số cách nhau ${st} độ. Đọc theo số ghi trên vạch.`;
+        const pool = [
+          candD(-t, 'DẤU', `Nhìn lại: thủy ngân ${t > 0 ? 'ở TRÊN' : 'ở DƯỚI'} vạch 0, nên nhiệt độ là số ${t > 0 ? 'dương' : 'âm'}.`),
+          candD(t + st, 'ĐẾM', 'Con đọc lệch một vạch. ' + lab),
+          candD(t - st, 'ĐẾM', 'Con đọc lệch một vạch. ' + lab),
+          candD(t + 2 * st, 'ĐẾM', 'Con đọc lệch hai vạch. ' + lab),
+          candD(t - 2 * st, 'ĐẾM', 'Con đọc lệch hai vạch. ' + lab),
+          candD(t + 1, 'ĐẾM', 'Thủy ngân dừng đúng ở vạch có ghi số. ' + lab),
+          candD(t - 1, 'ĐẾM', 'Thủy ngân dừng đúng ở vạch có ghi số. ' + lab),
+        ].filter((p) => inR(p.v) && p.v !== 0);
+        const choices = shuffle(rng, [R(deg(t)), ...rankPick(rng, t, pool)]);
+        const city = pick(rng, COLD), nmA = pick(rng, NAMES);
         return {
           id: 'g2.4', src: '[biến thể mới]', type: 'choice', layout: 'grid2',
-          prompt: 'Nhìn nhiệt kế. Thủy ngân đang chỉ bao nhiêu độ?',
+          prompt: pick(rng, ['Nhìn nhiệt kế. Thủy ngân đang chỉ bao nhiêu độ?', `Nhiệt kế đặt ngoài trời ở ${city}. Thủy ngân đang chỉ bao nhiêu độ?`, `${nmA} đọc nhiệt kế ở ${city}. Con xem giúp bạn: thủy ngân chỉ bao nhiêu độ?`]),
           hint: 'Thủy ngân ở trên hay ở dưới vạch 0?',
-          visual: { kind: 'thermo', min: -10, max: 10, step: 2, items: [{ label: '?', value: t }], showValue: false },
+          visual: { kind: 'thermo', min: sc.min, max: sc.max, step: st, items: [{ label: '?', value: t }], showValue: false },
           choices, meta: { t },
           explain: { steps: [
-            { text: `Thủy ngân ${t > 0 ? 'ở trên' : 'ở dưới'} vạch 0, nên nhiệt độ là số ${t > 0 ? 'dương' : 'âm'}.`, visual: th(t, undefined) },
-            { text: `Đếm từ vạch 0 ${t > 0 ? 'lên' : 'xuống'}: cột thủy ngân dừng ở ${f(t)}.`, visual: th(t, [{ label: deg(t), value: t }]) },
+            { text: `Thủy ngân ${t > 0 ? 'ở trên' : 'ở dưới'} vạch 0, nên nhiệt độ là số ${t > 0 ? 'dương' : 'âm'}.`, visual: thS(sc, t, undefined) },
+            { text: `Đếm từ vạch 0 ${t > 0 ? 'lên' : 'xuống'}, mỗi vạch ${st} độ: cột thủy ngân dừng ở ${f(t)}.`, visual: thS(sc, t, [{ label: deg(t), value: t }]) },
             { text: `Vậy nhiệt độ là ${deg(t)}.`, mark: 'good' },
           ] },
         };
@@ -286,39 +340,229 @@ export default {
       solve(item) { return deg(item.meta.t); },
     },
     {
-      id: 'g2.5',
+      // Đúng/Sai: hai thành phố, một âm một dương (50% đúng)
+      id: 'g2.5', covers: ['2.4'],
       make(rng) {
         for (let tries = 0; tries < 200; tries++) {
           const tw = int(rng, 1, 9), tc = -int(rng, 1, 9);
           const diff = tw - tc, amt = Math.abs(tw - Math.abs(tc));
           if (amt === 0 || amt === diff) continue;
           const [nw, nc] = twoCities(rng, tw);
-          const kind = pick(rng, ['ok', 'dir', 'amt']);
-          const stmt = kind === 'ok' ? `${nw} ấm hơn ${nc} ${diff} độ.` : kind === 'dir' ? `${nc} ấm hơn ${nw} ${diff} độ.` : `${nw} ấm hơn ${nc} ${amt} độ.`;
-          const speaker = pick(rng, ['Nam', 'Lan', 'Hùng', 'Mai', 'Minh']);
+          const truth = rng.next() < 0.5;
+          const kind = truth ? pick(rng, ['warm', 'cold']) : pick(rng, ['revWarm', 'revCold', 'amtWarm', 'amtCold']);
+          const stm = { warm: [nw, 'ấm', diff], cold: [nc, 'lạnh', diff], revWarm: [nc, 'ấm', diff], revCold: [nw, 'lạnh', diff], amtWarm: [nw, 'ấm', amt], amtCold: [nc, 'lạnh', amt] }[kind];
+          const other = stm[0] === nw ? nc : nw;
+          const text = `${stm[0]} ${stm[1]} hơn ${other} ${stm[2]} độ.`;
+          const subjWarm = stm[0] === nw;
+          const speaker = pick(rng, NAMES);
           const reasons = shuffle(rng, [
             { text: `${nw} ấm hơn ${nc} ${diff} độ`, correct: true },
             { text: `${nc} ấm hơn ${nw} ${diff} độ`, code: 'NGƯỢC', why: `${f(tw)} lớn hơn ${f(tc)}, nên ${nw} mới là nơi ấm hơn.` },
             { text: `${nw} ấm hơn ${nc} ${amt} độ`, code: 'DẤU', why: `Con mới tính ${Math.max(tw, Math.abs(tc))} − ${Math.min(tw, Math.abs(tc))} = ${amt}, như thể ${f(tc)} là ${Math.abs(tc)}. Nhưng ${f(tc)} nằm dưới số 0, nên phải đếm qua số 0: ${Math.abs(tc)} + ${tw} = ${diff}.` },
           ]);
+          const whyWrong = truth ? `Con thử đếm lại: từ ${f(tc)} lên 0 là ${Math.abs(tc)}, từ 0 lên ${tw} thêm ${tw}, được ${diff} độ. Lời nói này đúng.`
+            : kind.startsWith('amt') ? `Con đếm qua số 0: từ ${f(tc)} lên 0 là ${Math.abs(tc)}, từ 0 lên ${tw} thêm ${tw}, được ${diff} độ, không phải ${amt} độ.`
+              : `${f(tw)} lớn hơn ${f(tc)}, nên ${nw} ấm hơn ${nc} ${diff} độ. Bạn trong đề nói ngược chiều.`;
           return {
-            id: 'g2.5', src: '[biến thể mới]', type: 'tf', answer: kind === 'ok',
-            prompt: `${nw} ${deg(tw)}, ${nc} ${deg(tc)}. ${speaker} nói: "${stmt}" ${speaker} nói đúng hay sai?`,
+            id: 'g2.5', src: '[biến thể mới]', type: 'tf', answer: truth,
+            prompt: `${nw} ${deg(tw)}, ${nc} ${deg(tc)}. ${speaker} nói: "${text}" ${speaker} nói đúng hay sai?`,
             hint: 'Số nào lớn hơn thì ấm hơn. Rồi đếm số độ qua số 0.',
-            visual: { kind: 'bubble', who: speaker, text: stmt, emoji: '🧒' },
-            reasons,
-            whyWrong: kind === 'ok' ? `Con thử đếm lại: từ ${f(tc)} lên 0 là ${Math.abs(tc)}, lên ${tw} thêm ${tw}, được ${diff} độ. Lời nói này đúng.` : `${f(tw)} lớn hơn ${f(tc)}, nên ${nw} ấm hơn ${nc} ${diff} độ. Bạn trong đề nói chưa đúng chỗ này.`,
-            meta: { mk: kind },
+            visual: { kind: 'bubble', who: speaker, text, emoji: '🧒' },
+            reasons, whyWrong,
+            meta: { tw, tc, subjWarm, verb: stm[1], n: stm[2] },
             explain: { steps: [
-              { text: `${f(tw)} lớn hơn ${f(tc)}, nên ${nw} ấm hơn ${nc}.`, visual: th(tw, [{ label: nc, value: tc }, { label: nw, value: tw }]) },
+              { text: `${f(tw)} lớn hơn ${f(tc)}, nên ${nw} ấm hơn ${nc}, và ${nc} lạnh hơn ${nw}.`, visual: th(tw, [{ label: nc, value: tc }, { label: nw, value: tw }]) },
               { text: `Đếm số độ: từ ${f(tc)} lên 0 là ${Math.abs(tc)}, từ 0 lên ${tw} là ${tw}. Tổng ${Math.abs(tc)} + ${tw} = ${diff} độ.`, visual: { kind: 'numberline', min: tc - 1, max: tw + 1, step: 1, labelEvery: 1, points: [{ at: tc }, { at: 0, color: '#F5893A' }, { at: tw }], jumps: [{ from: tc, to: 0, label: '+' + Math.abs(tc) }, { from: 0, to: tw, label: '+' + tw }] } },
-              { text: kind === 'ok' ? `Vậy ${speaker} nói đúng.` : `Vậy ${speaker} nói sai: ${nw} ấm hơn ${nc} ${diff} độ.`, mark: 'good' },
+              { text: truth ? `Vậy ${speaker} nói đúng.` : `Vậy ${speaker} nói sai: ${nw} ấm hơn ${nc} ${diff} độ.`, mark: 'good' },
             ] },
           };
         }
         throw new Error('g2.5');
       },
-      solve(item) { return String(item.meta.mk === 'ok'); },
+      solve(item) { const { tw, tc, subjWarm, verb, n } = item.meta; return String((verb === 'ấm') === subjWarm && n === tw - tc); },
+    },
+    {
+      // Nhiệt độ ấm hơn / lạnh hơn một mức cho trước đúng n độ
+      id: 'g2.6', covers: ['2.2'],
+      make(rng) {
+        for (let tries = 0; tries < 300; tries++) {
+          const X = rng.next() < 0.2 ? 0 : int(rng, -8, 8), n = int(rng, 2, 9), warmer = rng.next() < 0.5;
+          const right = X + (warmer ? n : -n);
+          if (right < -10 || right > 10) continue;
+          if (X !== 0 && !((X < 0 && right > 0) || (X > 0 && right < 0)) && rng.next() < 0.7) continue;
+          const word = warmer ? 'ấm' : 'lạnh', opp = warmer ? 'lạnh' : 'ấm', go = warmer ? 'lên' : 'xuống';
+          const miss = (v) => `Từ ${deg(X)} ${go} tới ${deg(v)} mới được ${Math.abs(v - X)} độ. Cần đủ ${n} độ.`;
+          const pool = [];
+          if (X === 0) pool.push(candD(-right, 'DẤU', `${deg(-right)} ${opp} hơn 0 °C là ${n} độ. ${warmer ? 'Ấm' : 'Lạnh'} hơn thì phải ${go} ${warmer ? 'trên' : 'dưới'} số 0.`));
+          else {
+            pool.push(candD(X + (warmer ? -n : n), 'NGƯỢC', `${deg(X + (warmer ? -n : n))} ${opp} hơn ${deg(X)} là ${n} độ. Đề hỏi ${word} hơn.`));
+            pool.push(candD(-right, 'DẤU', `Con đã đổi dấu của kết quả. Từ ${deg(X)} đi ${go} ${n} độ thì tới ${deg(right)}, không phải ${deg(-right)}.`));
+            pool.push(candD(warmer ? n : -n, 'ĐẾM', `Số này cách 0 °C đúng ${n} độ. Đề cho ${deg(X)}, nên con phải bắt đầu đếm từ ${f(X)}.`));
+          }
+          pool.push(candD(right + 1, 'ĐẾM', miss(right + 1)), candD(right - 1, 'ĐẾM', miss(right - 1)), candD(right + 2, 'ĐẾM', miss(right + 2)), candD(right - 2, 'ĐẾM', miss(right - 2)));
+          const choices = shuffle(rng, [R(deg(right)), ...rankPick(rng, right, pool)]);
+          const nmA = pick(rng, NAMES);
+          const jumps = Array.from({ length: n }, (_, i) => ({ from: X + (warmer ? i : -i), to: X + (warmer ? i + 1 : -i - 1), label: warmer ? '+1' : MI + '1' }));
+          const lo = Math.min(X, right) - 1, hi = Math.max(X, right) + 1;
+          return {
+            id: 'g2.6', src: '[biến thể mới]', type: 'choice', layout: 'grid2',
+            prompt: pick(rng, [`Mức nhiệt nào ${word} hơn ${deg(X)} đúng ${n} độ?`, `Nhiệt kế của ${nmA} đang chỉ ${deg(X)}. Mức nhiệt nào ${word} hơn mức đó đúng ${n} độ?`]),
+            hint: `${warmer ? 'Ấm' : 'Lạnh'} hơn thì thủy ngân phải đi lên hay đi xuống?`,
+            visual: th(X, [{ label: deg(X), value: X }]),
+            choices, meta: { X, n, warmer },
+            explain: { steps: [
+              { text: `${warmer ? 'Ấm' : 'Lạnh'} hơn thì nhiệt độ đi ${go}${X === 0 ? ', ' + (warmer ? 'lên trên' : 'xuống dưới') + ' vạch 0' : ''}.`, visual: th(X, [{ label: deg(X), value: X }]) },
+              { text: `Đi ${go} ${n} độ, mỗi lần một độ, bắt đầu từ ${f(X)}${X !== 0 && ((X < 0 && right > 0) || (X > 0 && right < 0)) ? ' và đi qua số 0' : ''}.`, visual: { kind: 'numberline', min: lo, max: hi, step: 1, labelEvery: 1, points: [{ at: X, color: X === 0 ? '#F5893A' : undefined }, { at: right }], jumps, marker: { at: X, emoji: '🐸' }, anim: 'hop' } },
+              { text: `Vậy đáp án là ${deg(right)}.`, mark: 'good', visual: th(right, [{ label: deg(X), value: X }, { label: deg(right), value: right }]) },
+            ] },
+          };
+        }
+        throw new Error('g2.6');
+      },
+      solve(item) { const { X, n, warmer } = item.meta; return deg(X + (warmer ? n : -n)); },
+    },
+    {
+      // Xếp thứ tự nhiệt độ
+      id: 'g2.7', covers: ['2.3'],
+      make(rng) {
+        const nVals = rng.next() < 0.55 ? 4 : 5;
+        const vals = fewTemps(rng, nVals), asc = rng.next() < 0.6;
+        const sorted = vals.slice().sort((x, y) => (asc ? x - y : y - x));
+        const byAbs = vals.slice().sort((x, y) => (asc ? Math.abs(x) - Math.abs(y) : Math.abs(y) - Math.abs(x)));
+        const rev = sorted.slice().reverse();
+        const key = (a) => a.join(',');
+        const wrongHints = [];
+        wrongHints.push({ match: rev.map(idOf), code: 'ĐỌC', why: asc ? 'Đây là xếp từ ấm đến lạnh. Tăng dần là từ bé đến lớn, bắt đầu từ lạnh nhất.' : 'Đây là xếp từ lạnh đến ấm. Giảm dần là từ lớn đến bé, bắt đầu từ ấm nhất.' });
+        if (key(byAbs) !== key(sorted) && key(byAbs) !== key(rev)) wrongHints.push({ match: byAbs.map(idOf), code: 'DẤU', why: 'Con đã so sánh như số không có dấu. Số âm càng xa 0 thì càng lạnh, tức là càng bé.' });
+        const T = (a) => a.map(deg).join(', ');
+        const [t0] = pick(rng, [['Sáng nay'], ['Hôm qua'], ['Đêm qua'], ['Hôm nay']]), nmA = pick(rng, NAMES);
+        const ctx = pick(rng, [`${t0}, ${nmA} ghi lại nhiệt độ ở ${nVals} nơi.`, `${nmA} đọc nhiệt độ ở ${nVals} thành phố.`]);
+        return {
+          id: 'g2.7', src: '[biến thể mới]', type: 'order',
+          prompt: `${ctx} ${asc ? 'Xếp các nhiệt độ từ LẠNH nhất đến ấm nhất (tăng dần)' : 'Xếp các nhiệt độ từ ẤM nhất đến lạnh nhất (giảm dần)'}. Chạm lần lượt từng nhiệt độ.`,
+          hint: 'Thủy ngân càng thấp trên nhiệt kế thì càng lạnh.',
+          visual: th(undefined, vals.map((v) => ({ label: deg(v), value: v }))),
+          items: vals.map((v) => ({ id: idOf(v), text: deg(v) })),
+          answer: sorted.map(idOf), wrongHints, meta: { vals, asc },
+          explain: { steps: [
+            { text: `Nhìn nhiệt kế: ${deg(Math.min(...vals))} thấp nhất nên lạnh nhất. ${deg(Math.max(...vals))} cao nhất nên ấm nhất.`, visual: th(Math.min(...vals), vals.slice().sort((x, y) => x - y).map((v) => ({ label: deg(v), value: v }))) },
+            { text: 'Các số âm: số nào xa 0 hơn thì bé hơn. Rồi đến 0 và các số dương.', visual: { kind: 'sequence', items: vals.slice().sort((x, y) => x - y), arrowLabels: arrowsOf(nVals - 1, '<'), anim: 'reveal' } },
+            { text: `Vậy thứ tự đúng là ${T(sorted)}.`, mark: 'good' },
+          ] },
+        };
+      },
+      solve(item) { const { vals, asc } = item.meta; return vals.slice().sort((x, y) => (asc ? x - y : y - x)).map(idOf).join(','); },
+    },
+    {
+      // Đúng/Sai: hai nhiệt độ dương, ai ấm hơn và hơn bao nhiêu độ (50% đúng)
+      id: 'g2.8', covers: ['2.5'],
+      make(rng) {
+        for (let tries = 0; tries < 200; tries++) {
+          const tw = int(rng, 22, 34), tc = int(rng, 6, 19), diff = tw - tc;
+          const nw = pick(rng, WARM_C), nc = pick(rng, COOL_C);
+          const sum = tw + tc, off = pick(rng, [diff + 1, diff - 1, diff + 2, diff - 2]);
+          const truth = rng.next() < 0.5;
+          const kind = truth ? pick(rng, ['warm', 'cold']) : pick(rng, ['revWarm', 'revCold', 'sumWarm', 'offCold']);
+          const stm = { warm: [nw, 'ấm', diff], cold: [nc, 'lạnh', diff], revWarm: [nc, 'ấm', diff], revCold: [nw, 'lạnh', diff], sumWarm: [nw, 'ấm', sum], offCold: [nc, 'lạnh', off] }[kind];
+          const other = stm[0] === nw ? nc : nw;
+          const text = `${stm[0]} ${stm[1]} hơn ${other} ${stm[2]} độ.`;
+          const speaker = pick(rng, NAMES);
+          const reasons = shuffle(rng, [
+            { text: `${nw} ấm hơn ${nc} ${diff} độ`, correct: true },
+            { text: `${nc} ấm hơn ${nw} ${diff} độ`, code: 'NGƯỢC', why: `${tw} lớn hơn ${tc}, nên ${nw} mới là nơi ấm hơn.` },
+            { text: `${nw} ấm hơn ${nc} ${sum} độ`, code: 'QUY', why: `Con đã cộng hai nhiệt độ: ${tw} + ${tc} = ${sum}. Hỏi hơn kém bao nhiêu độ thì phải TRỪ: ${tw} − ${tc} = ${diff}.` },
+          ]);
+          const whyWrong = truth ? `Con thử trừ lại: ${tw} − ${tc} = ${diff} độ, và ${tw} lớn hơn ${tc}. Lời nói này đúng.`
+            : kind.startsWith('rev') ? `Số ${diff} thì đúng, nhưng nói ngược chiều. ${tw} lớn hơn ${tc} nên ${nw} mới là nơi ấm hơn.`
+              : `Hơn kém nhau bao nhiêu độ thì lấy số lớn TRỪ số bé: ${tw} − ${tc} = ${diff} độ, không phải ${stm[2]} độ.`;
+          return {
+            id: 'g2.8', src: '[biến thể mới]', type: 'tf', answer: truth,
+            prompt: `${nc} ${deg(tc)}, ${nw} ${deg(tw)}. ${speaker} nói: "${text}" ${speaker} nói đúng hay sai?`,
+            hint: 'Thành phố nào có số lớn hơn thì ấm hơn. Rồi lấy số lớn trừ số bé.',
+            visual: { kind: 'bubble', who: speaker, text, emoji: '🧒' },
+            reasons, whyWrong,
+            meta: { tw, tc, subjWarm: stm[0] === nw, verb: stm[1], n: stm[2] },
+            explain: { steps: [
+              { text: `${tw} lớn hơn ${tc}, nên ${nw} ấm hơn ${nc}, và ${nc} lạnh hơn ${nw}.`, visual: { kind: 'numberline', min: Math.max(0, tc - 4), max: tw + 3, step: 1, labelEvery: 5, points: [{ at: tc }, { at: tw }], jumps: [{ from: tc, to: tw, label: '+' + diff }] } },
+              { text: `Ấm hơn bao nhiêu độ: ${tw} − ${tc} = ${diff} độ.` },
+              { text: truth ? `Vậy ${speaker} nói đúng.` : `Vậy ${speaker} nói sai: ${nw} ấm hơn ${nc} ${diff} độ.`, mark: 'good' },
+            ] },
+          };
+        }
+        throw new Error('g2.8');
+      },
+      solve(item) { const { tw, tc, subjWarm, verb, n } = item.meta; return String((verb === 'ấm') === subjWarm && n === tw - tc); },
+    },
+    {
+      // Nhập số: nhiệt độ sau khi tăng / giảm
+      id: 'g2.9', covers: ['2.6'],
+      make(rng) {
+        const up = rng.next() < 0.5;
+        let s, c;
+        if (up) { s = -int(rng, 2, 9); c = int(rng, -s + 1, -s + 9); } else { s = int(rng, 2, 9); c = int(rng, s + 1, s + 9); }
+        const dsig = up ? c : -c, right = s + dsig;
+        const hintsRaw = up
+          ? [[s - c, 'NGƯỢC', 'Tăng nghĩa là đi LÊN, không phải đi xuống.'], [Math.abs(s) + c, 'DẤU', `Con nhớ giữ dấu âm: ${f(s)} nằm dưới số 0.`], [-right, 'DẤU', `${c} − ${Math.abs(s)} = ${right} và mình đã vượt qua số 0, nên kết quả là số dương.`]]
+          : [[s + c, 'NGƯỢC', 'Giảm nghĩa là đi XUỐNG, không phải đi lên.'], [-right, 'DẤU', `${c} − ${s} = ${-right} và mình đã xuống qua số 0, nên kết quả là số âm.`], [-(s + c), 'DẤU', `${s} nằm TRÊN số 0 nên giảm là ${s} − ${c}, không phải −${s} − ${c}.`]];
+        const seenM = new Set([f(right)]);
+        const wrongHints = hintsRaw.filter(([v]) => (seenM.has(f(v)) ? false : (seenM.add(f(v)), true))).map(([v, code, why]) => ({ match: f(v), code, why }));
+        const [t0, t1] = pick(rng, TIMES), city = pick(rng, COLD);
+        const lo = Math.min(s, right) - 1, hi = Math.max(s, right) + 1;
+        return {
+          id: 'g2.9', src: '[biến thể mới]', type: 'numpad',
+          prompt: `${t0} ở ${city}, nhiệt độ là ${deg(s)}. Đến ${t1}, nhiệt độ ${up ? 'tăng' : 'giảm'} thêm ${c} độ. Nhiệt độ lúc đó là bao nhiêu độ C?`,
+          hint: `Từ ${f(s)} ${up ? 'lên' : 'xuống'} tới 0 mất mấy độ? Còn thừa mấy độ nữa?`,
+          visual: th(s, [{ label: t0, value: s }]),
+          slots: [{ label: 'Lúc đó:', answer: f(right), unit: '°C', allowNeg: true }],
+          alt: right < 0 ? { 0: [String(right)] } : undefined,
+          wrongHints, meta: { s, c, up },
+          explain: { steps: [
+            { text: `Từ ${f(s)} ${up ? 'lên' : 'xuống'} tới 0 mất ${Math.abs(s)} độ.`, visual: { kind: 'numberline', min: lo, max: hi, step: 1, labelEvery: 1, points: [{ at: s }, { at: 0, color: '#F5893A' }], jumps: [{ from: s, to: 0, label: (up ? '+' : MI) + Math.abs(s) }], marker: { at: s, emoji: '🐸' }, anim: 'hop' } },
+            { text: `Còn ${c} − ${Math.abs(s)} = ${c - Math.abs(s)} độ nữa thì ${up ? 'lên' : 'xuống'} từ 0 tới ${f(right)}.`, visual: { kind: 'numberline', min: lo, max: hi, step: 1, labelEvery: 1, points: [{ at: s }, { at: 0, color: '#F5893A' }, { at: right }], jumps: [{ from: s, to: 0, label: (up ? '+' : MI) + Math.abs(s) }, { from: 0, to: right, label: (up ? '+' : MI) + Math.abs(right) }] } },
+            { text: `Vậy nhiệt độ lúc đó là ${deg(right)}.`, mark: 'good', visual: th(right, [{ label: 'Trước', value: s }, { label: 'Sau', value: right }]) },
+          ] },
+        };
+      },
+      solve(item) { const { s, c, up } = item.meta; return f(s + (up ? c : -c)); },
+    },
+    {
+      // Nhiệt độ thứ hai (lạnh / ấm) trong một nhóm
+      id: 'g2.10', covers: ['2.7'],
+      make(rng) {
+        for (let tries = 0; tries < 300; tries++) {
+          const n = rng.next() < 0.5 ? 4 : 5;
+          const vals = fewTemps(rng, n);
+          if (new Set(vals.map(Math.abs)).size < n) continue;
+          const asc = vals.slice().sort((x, y) => x - y);
+          const noun = pick(rng, ['ngày', 'thành phố', 'nơi']);
+          const asks = [{ idx: 0, name: 'lạnh nhất', long: 'lạnh nhất' }, { idx: 1, name: 'lạnh thứ hai', long: `lạnh thứ hai, tức là lạnh ngay sau ${noun} lạnh nhất` }, { idx: n - 1, name: 'ấm nhất', long: 'ấm nhất' }, { idx: n - 2, name: 'ấm thứ hai', long: `ấm thứ hai, tức là ấm ngay sau ${noun} ấm nhất` }];
+          const ask = pick(rng, asks);
+          const right = asc[ask.idx];
+          const absAsc = vals.slice().sort((x, y) => Math.abs(x) - Math.abs(y) || x - y);
+          const absAns = absAsc[ask.idx];
+          if (absAns === right) continue;
+          const rankName = (u) => { const i = asc.indexOf(u); return i === 0 ? 'lạnh nhất' : i === 1 ? 'lạnh thứ hai' : i === n - 1 ? 'ấm nhất' : i === n - 2 ? 'ấm thứ hai' : 'ở giữa (thứ ba)'; };
+          const nounS = noun === 'thành phố' ? 'Thành phố' : noun === 'ngày' ? 'Ngày' : 'Nơi';
+          const others = shuffle(rng, vals.filter((u) => u !== right && u !== absAns));
+          const wr = [W(deg(absAns), 'DẤU', `Con đã so sánh như số không có dấu. Số âm càng xa 0 thì càng lạnh, nên ${deg(absAns)} là ${noun} ${rankName(absAns)}.`),
+            ...others.slice(0, 2).map((u) => W(deg(u), 'ĐỌC', `${deg(u)} là ${noun} ${rankName(u)}. Đề hỏi ${noun} ${ask.name}.`))];
+          const choices = shuffle(rng, [R(deg(right)), ...wr]);
+          const sortedT = asc.map(f).join(', ');
+          return {
+            id: 'g2.10', src: '[biến thể mới]', type: 'choice', layout: 'grid2',
+            prompt: `${n === 4 ? 'Bốn' : 'Năm'} ${noun} có nhiệt độ ${vals.map(deg).join(', ')}. ${nounS} nào ${ask.long}?`,
+            hint: `Xếp ${n === 4 ? 'bốn' : 'năm'} nhiệt độ từ lạnh đến ấm trước.`,
+            choices, meta: { vals, idx: ask.idx },
+            explain: { steps: [
+              { text: `Xếp từ lạnh đến ấm: ${sortedT}.`, visual: th(undefined, asc.map((v) => ({ label: f(v), value: v }))) },
+              { text: `${nounS} ${ask.name} là số đứng thứ ${ask.idx + 1} trong dãy vừa xếp: ${deg(right)}.`, visual: { kind: 'sequence', items: asc, highlight: [ask.idx] } },
+              { text: `Vậy đáp án là ${deg(right)}.`, mark: 'good' },
+            ] },
+          };
+        }
+        throw new Error('g2.10');
+      },
+      solve(item) { const { vals, idx } = item.meta; return deg(vals.slice().sort((x, y) => x - y)[idx]); },
     },
   ],
 };

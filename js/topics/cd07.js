@@ -1,5 +1,6 @@
 // CĐ7 · Cộng, trừ: ước lượng, số thiếu □ ○ △, tia số
 import { pick, int, shuffle, seeded } from '../core/rng.js';
+import { vcalcSteps, vcalcMicro, estimateSteps } from '../core/paper.js';
 
 /* ---------- tiện ích dùng riêng trong file ---------- */
 const fmt = (n) => {
@@ -23,6 +24,20 @@ function distinct(pool, rightText, n) {
   const out = [];
   for (const w of pool) { if (seen.has(w.text)) continue; seen.add(w.text); out.push(w); if (out.length === n) break; }
   return out;
+}
+
+const NAMES = ['Mai', 'Nam', 'Lan', 'Hùng', 'Bo', 'Minh', 'An', 'Hoa', 'Tú', 'Linh', 'Khoa', 'Vy', 'Phúc', 'Chi'];
+const pairStr = (obj) => Object.keys(obj).sort().map((k) => `${k}:${obj[k]}`).join(',');
+// chọn k đáp án nhiễu từ pool {v,...} (v là giá trị số): số đáp án nhỏ hơn đáp án đúng được rút ngẫu nhiên
+// nên đáp án đúng không luôn nhỏ nhất / lớn nhất / ở giữa dãy số.
+function pickBalanced(rng, right, pool, k = 3) {
+  const seen = new Set([right]), uniq = [];
+  for (const w of pool) if (Number.isInteger(w.v) && w.v > 0 && !seen.has(w.v)) { seen.add(w.v); uniq.push(w); }
+  const lo = uniq.filter((w) => w.v < right), hi = uniq.filter((w) => w.v > right);
+  const feas = []; for (let b = 0; b <= k; b++) if (b <= lo.length && k - b <= hi.length) feas.push(b);
+  if (!feas.length) return uniq.slice(0, k);
+  const b = pick(rng, feas);
+  return shuffle(rng, [...lo.slice(0, b), ...hi.slice(0, k - b)]);
 }
 
 // trục số khoảng [lo, hi] chứa số n, để minh hoạ làm tròn đến hàng trăm
@@ -76,24 +91,38 @@ function colTable(op, c, k) { // k = số cột đã tính (0..3)
   const col = 4 - Math.max(1, k);
   return { kind: 'table', headers: ['', 'Trăm', 'Chục', 'Đơn vị'], rows, hide, highlight: k >= 1 && k <= 3 ? [[1, col], [2, col], [3, col]] : [] };
 }
-function addSteps(a, b) {
-  const c = addCalc(a, b), res = a + b;
-  return [
-    { text: `Hàng đơn vị: ${c.ua} + ${c.ub} = ${c.u}. ${c.cu ? `Viết ${c.ru}, nhớ 1 sang hàng chục.` : `Viết ${c.ru}.`}`, visual: colTable('+', c, 1) },
-    { text: `Hàng chục: ${c.ta} + ${c.tb}${c.cu ? ' + 1 (nhớ)' : ''} = ${c.t}. ${c.ct ? `Viết ${c.rt}, nhớ 1 sang hàng trăm.` : `Viết ${c.rt}.`}`, visual: colTable('+', c, 2) },
-    { text: `Hàng trăm: ${c.ha} + ${c.hb}${c.ct ? ' + 1 (nhớ)' : ''} = ${c.h}. Viết ${c.h}.`, visual: colTable('+', c, 3) },
-    { text: `Vậy ${fmt(a)} + ${fmt(b)} = ${fmt(res)}. Ước lượng ${fmt(r100(a))} + ${fmt(r100(b))} = ${fmt(r100(a) + r100(b))} cũng gần số này.`, mark: 'good', visual: colTable('+', c, 3) },
-  ];
+// ----- lời giải kiểu vở ô li (hình nháp từ core/paper.js): đặt tính → từng cột (nhóm lại) → kết luận -----
+// paper.js viết số 4 chữ số liền nhau; trong bài ta viết có dấu cách nghìn như phần còn lại của chủ đề.
+const gp = (t) => (t == null ? t : t.replace(/(?<!\d)(\d)(\d{3})(?!\d)/g, '$1 $2'));
+// rút gọn lời cho đủ ≤ 2 câu: bỏ các câu mà hình đã cho thấy ("Viết 1 nhỏ phía trên…", "Kẻ vạch ngang"), còn dài thì nối các câu bằng dấu chấm phẩy
+const lc = (x) => (/^[A-ZÀ-Ỵ]/.test(x) ? x[0].toLowerCase() + x.slice(1) : x);
+function concise(t) {
+  if (!t) return t;
+  let ss = t.split(/(?<=\.)\s+/);
+  if (ss.length > 2) ss = ss.filter((x) => !/^(Viết \d+ nhỏ phía trên|Kẻ vạch ngang)/.test(x));
+  if (ss.length > 2) {
+    let best = 1, gap = 1e9;
+    for (let k = 1; k < ss.length; k++) { const d = Math.abs(ss.slice(0, k).join(' ').length - ss.slice(k).join(' ').length); if (d < gap) { gap = d; best = k; } }
+    const join = (arr) => arr.map((x, i) => (i ? lc(x) : x).replace(/\.$/, '')).join('; ') + '.';
+    ss = [join(ss.slice(0, best)), join(ss.slice(best))];
+  }
+  return ss.join(' ');
 }
-function subSteps(a, b) {
-  const c = subCalc(a, b), res = a - b;
-  return [
-    { text: c.bu ? `Hàng đơn vị: ${c.ua} bé hơn ${c.ub}, mượn 1 chục: ${c.ua + 10} − ${c.ub} = ${c.ru}. Hàng chục còn ${c.t0}.` : `Hàng đơn vị: ${c.ua} − ${c.ub} = ${c.ru}.`, visual: colTable('−', c, 1) },
-    { text: c.bt ? `Hàng chục: ${c.t0} bé hơn ${c.tb}, mượn 1 trăm: ${c.t0 + 10} − ${c.tb} = ${c.rt}. Hàng trăm còn ${c.ha - 1}.` : `Hàng chục: ${c.t0} − ${c.tb} = ${c.rt}.`, visual: colTable('−', c, 2) },
-    { text: `Hàng trăm: ${c.ha - c.bt} − ${c.hb} = ${c.rh}. Viết ${c.rh}.`, visual: colTable('−', c, 3) },
-    { text: `Vậy ${fmt(a)} − ${fmt(b)} = ${fmt(res)}. Ước lượng ${fmt(r100(a))} − ${fmt(r100(b))} = ${fmt(r100(a) - r100(b))} cũng gần số này.`, mark: 'good', visual: colTable('−', c, 3) },
-  ];
+const tidy = (steps) => steps.map((st) => { const o = Object.assign({}, st, { text: gp(concise(st.text)) }); if (st.say) o.say = gp(concise(st.say)); return o; });
+const estStep = (op, a, b) => estimateSteps(op, a, b).find((x) => /^Ước lượng:/.test(x.text));   // bước "Ước lượng: 500 + 200 = 700"
+const estCompare = (op, a, b) => { const l = estimateSteps(op, a, b); return l[l.length - 1]; };   // bước "So sánh với ước lượng"
+// est: 'end' (so sánh với ước lượng ở cuối) | 'first' (ước lượng trước khi tính) | '' (không có)
+function calcSteps(op, a, b, est) {
+  const st = vcalcSteps(op, a, b, { maxSteps: 5 });
+  if (est === 'first') st.unshift(estStep(op, a, b));
+  if (est === 'end') st.push(estCompare(op, a, b));
+  st[st.length - 1] = Object.assign({}, st[st.length - 1], { mark: 'good' });
+  return tidy(st);
 }
+const addSteps = (a, b, est = 'end') => calcSteps('+', a, b, est);
+const subSteps = (a, b, est = 'end') => calcSteps('−', a, b, est);
+// hình đặt tính hoàn chỉnh (dùng cho thẻ "Điều cần nhớ")
+const vcalcDone = (op, a, b) => ({ kind: 'vcalc', op, a, b, upto: vcalcMicro(op, a, b).length });
 
 /* ---------- bài cố định ---------- */
 const items = [
@@ -112,7 +141,8 @@ const items = [
       steps: [
         { text: '526: chữ số hàng chục là 2, từ 4 trở xuống nên giữ, thành 500.', visual: nlHundred(526) },
         { text: '195: chữ số hàng chục là 9, từ 5 trở lên nên lên, thành 200.', visual: nlHundred(195) },
-        { text: 'Cộng hai số đã làm tròn: 500 + 200 = 700. Vậy đáp án là 500 + 200 = 700.', mark: 'good' },
+        estStep('+', 526, 195),
+        { text: 'Vậy đáp án là 500 + 200 = 700.', mark: 'good' },
       ],
     },
     tags: ['ước lượng', 'làm tròn'],
@@ -142,10 +172,7 @@ const items = [
     ],
     hint: 'Hàng đơn vị: 1 không đủ trừ 2. Hãy mượn 1 chục.',
     explain: {
-      steps: [
-        { text: 'Ước lượng: 621 gần 600, 282 gần 300. 600 − 300 = 300, nên kết quả phải gần 300.' },
-        ...subSteps(621, 282),
-      ],
+      steps: subSteps(621, 282, 'first'),
     },
     tags: ['trừ có mượn'],
   },
@@ -178,10 +205,10 @@ const items = [
     hint: 'Tìm cả số có □ trước (dùng phép ngược), rồi xem chữ số nào của nó là □.',
     explain: {
       steps: [
-        { text: 'a) Số hạng = tổng − số kia: □6 = 83 − 67 = 16. Vậy □ = 1.', visual: { kind: 'sequence', items: ['83', '67', '16'], arrowLabels: ['−', '='], highlight: [2] } },
-        { text: 'b) 2□ = 71 − 48 = 23, vậy □ = 3.', visual: { kind: 'sequence', items: ['71', '48', '23'], arrowLabels: ['−', '='], highlight: [2] } },
-        { text: 'c) Số trừ = số bị trừ − hiệu: 1□ = 56 − 37 = 19. Ô □ chỉ là MỘT chữ số, nên □ = 9 (không phải 19).', mark: 'bad', visual: { kind: 'sequence', items: ['56', '37', '19'], arrowLabels: ['−', '='], highlight: [2] } },
-        { text: 'd) Số bị trừ = hiệu + số trừ: □3 = 55 + 28 = 83, vậy □ = 8. Kết quả: a là 1, b là 3, c là 9, d là 8.', mark: 'good', visual: { kind: 'sequence', items: ['55', '28', '83'], arrowLabels: ['+', '='], highlight: [2] } },
+        { text: '67 + □6 = 83: số hạng = tổng − số kia, nên □6 = 83 − 67 = 16. Vậy □ = 1.', visual: { kind: 'sequence', items: ['83', '67', '16'], arrowLabels: ['−', '='], highlight: [2] } },
+        { text: '2□ + 48 = 71: 2□ = 71 − 48 = 23, vậy □ = 3.', visual: { kind: 'sequence', items: ['71', '48', '23'], arrowLabels: ['−', '='], highlight: [2] } },
+        { text: '56 − 1□ = 37: số trừ = số bị trừ − hiệu, nên 1□ = 56 − 37 = 19. Ô □ chỉ là MỘT chữ số, nên □ = 9 (không phải 19).', mark: 'bad', visual: { kind: 'sequence', items: ['56', '37', '19'], arrowLabels: ['−', '='], highlight: [2] } },
+        { text: '□3 − 28 = 55: số bị trừ = hiệu + số trừ, nên □3 = 55 + 28 = 83, vậy □ = 8. Kết quả: 67 + □6 = 83 thì □ = 1; 2□ + 48 = 71 thì □ = 3; 56 − 1□ = 37 thì □ = 9; □3 − 28 = 55 thì □ = 8.', mark: 'good', visual: { kind: 'sequence', items: ['55', '28', '83'], arrowLabels: ['+', '='], highlight: [2] } },
       ],
     },
     tags: ['số thiếu', 'phép ngược'],
@@ -247,7 +274,7 @@ const noWhy = (o, a, b) => (o === '−' ? `${a} bé hơn ${b}, không trừ đư
 
 const generators = [
   {
-    id: 'g7.1', // ước lượng
+    id: 'g7.1', covers: ['7.1'], // ước lượng
     make(rng) {
       const op = pick(rng, ['+', '−']);
       let a, b;
@@ -277,9 +304,9 @@ const generators = [
         const v = comb(x, y);
         if (seenV.has(v)) continue;
         seenV.add(v);
-        pool.push({ text: txt(x, y), code, why });
+        pool.push({ text: txt(x, y), code, why, v });
       }
-      const wr = distinct(pool, right, 3);
+      const wr = pickBalanced(rng, rightVal, pool);
       return {
         id: 'g7.1', src: '[biến thể mới]', type: 'choice',
         prompt: `Ước lượng ${fmt(a)} ${op} ${fmt(b)}: làm tròn cả hai số đến hàng trăm rồi ${op === '+' ? 'cộng' : 'trừ'}. Cách nào đúng?`,
@@ -289,7 +316,8 @@ const generators = [
           steps: [
             { text: `${fmt(a)}: chữ số hàng chục là ${da}, ${da >= 5 ? 'từ 5 trở lên nên lên' : 'từ 4 trở xuống nên giữ'}, thành ${fmt(ra)}.`, visual: nlHundred(a) },
             { text: `${fmt(b)}: chữ số hàng chục là ${db}, ${db >= 5 ? 'từ 5 trở lên nên lên' : 'từ 4 trở xuống nên giữ'}, thành ${fmt(rb)}.`, visual: nlHundred(b) },
-            { text: `${op === '+' ? 'Cộng' : 'Trừ'} hai số đã làm tròn: ${right}. Vậy đáp án là ${right}.`, mark: 'good' },
+            estStep(op, a, b),
+            { text: `Vậy đáp án là ${right}.`, mark: 'good' },
           ],
         },
         meta: { a, b, op },
@@ -302,7 +330,7 @@ const generators = [
     },
   },
   {
-    id: 'g7.2', // cộng/trừ đặt dọc có nhớ/mượn
+    id: 'g7.2', covers: ['7.2'], // cộng/trừ đặt dọc có nhớ/mượn
     make(rng) {
       const op = pick(rng, ['+', '−']);
       const { a, b } = genAddSub(rng, op);
@@ -331,7 +359,7 @@ const generators = [
     solve(item) { const { a, b, op } = item.meta; return String(op === '+' ? a + b : a - b); },
   },
   {
-    id: 'g7.3', // tia số: làm tròn rồi bù
+    id: 'g7.3', covers: ['7.4'], // tia số: làm tròn rồi bù
     make(rng) {
       const op = pick(rng, ['+', '−']);
       const m = int(rng, 3, 6), d = int(rng, 1, 4);
@@ -397,7 +425,7 @@ const generators = [
     solve(item) { const { a, b, c } = item.meta; const hit = ['+', '−', '×', '÷'].find((o) => apply(o, a, b) === c); return OPT[hit]; },
   },
   {
-    id: 'g7.5', // số thiếu
+    id: 'g7.5', covers: ['7.7'], // số thiếu
     make(rng) {
       const form = pick(rng, ['T1', 'T2', 'T3', 'T4']);
       const sym = pick(rng, ['□', '○', '△']);
@@ -467,8 +495,7 @@ const generators = [
         ];
         meta = { form, b, c };
       }
-      const pool = wrongs.map((w) => ({ text: fmt(w.v), code: w.code, why: w.why }));
-      const wr = distinct(pool, fmt(ans), 3);
+      const wr = pickBalanced(rng, ans, wrongs).map((w) => ({ text: fmt(w.v), code: w.code, why: w.why }));
       return {
         id: 'g7.5', src: '[biến thể mới]', type: 'choice',
         prompt: eq,
@@ -489,6 +516,192 @@ const generators = [
       return 'không có';
     },
   },
+  {
+    id: 'g7.6', covers: ['7.3'], // chọn kết quả cộng/trừ có nhớ/mượn
+    make(rng) {
+      const op = rng.next() < 0.65 ? '−' : '+';
+      const { a, b } = genAddSub(rng, op);
+      const res = op === '+' ? a + b : a - b;
+      const pool = [];
+      if (op === '−') {
+        const c = subCalc(a, b);
+        const flat = Math.abs(c.ha - c.hb) * 100 + Math.abs(c.ta - c.tb) * 10 + Math.abs(c.ua - c.ub);
+        const where = c.bu ? 'đơn vị' : 'chục', da = c.bu ? c.ua : c.ta, db = c.bu ? c.ub : c.tb;
+        pool.push({ v: flat, code: 'NHỚ', why: `Ở hàng ${where}, ${da} bé hơn ${db} thì phải mượn. Không lấy số lớn trừ số bé theo từng hàng được.` });
+        if (c.bu) pool.push({ v: res + 10, code: 'NHỚ', why: `Hàng đơn vị mượn 1 chục thì hàng chục chỉ còn ${c.t0}. Con nhớ bớt 1 ở hàng chục nhé.` });
+        if (c.bt) pool.push({ v: res + 100, code: 'NHỚ', why: `Hàng chục mượn 1 trăm thì hàng trăm chỉ còn ${c.ha - 1}. Con nhớ bớt 1 ở hàng trăm nhé.` });
+        if (c.bu && c.bt) pool.push({ v: res + 110, code: 'NHỚ', why: 'Con nhớ bớt 1 ở hàng chục (sau khi mượn ở hàng đơn vị) và bớt 1 ở hàng trăm (sau khi mượn ở hàng chục).' });
+      } else {
+        const c = addCalc(a, b);
+        if (c.cu) pool.push({ v: res - 10, code: 'NHỚ', why: `${c.ua} + ${c.ub} = ${c.u}, viết ${c.ru} và nhớ 1 sang hàng chục. Con nhớ cộng thêm 1 ở hàng chục nhé.` });
+        if (c.ct) pool.push({ v: res - 100, code: 'NHỚ', why: `Hàng chục được ${c.t}, viết ${c.rt} và nhớ 1 sang hàng trăm. Hàng trăm phải cộng thêm 1.` });
+        if (c.cu && c.ct) pool.push({ v: res - 110, code: 'NHỚ', why: 'Con nhớ cộng thêm 1 ở hàng chục và thêm 1 ở hàng trăm nữa.' });
+      }
+      const ea = r100(a), eb = r100(b), est = op === '+' ? ea + eb : ea - eb;
+      pool.push({ v: est, code: 'QUY', why: `${fmt(est)} mới là kết quả ước lượng (${fmt(ea)} ${op} ${fmt(eb)}). Cần tính đúng ${fmt(a)} ${op} ${fmt(b)}.` });
+      const chk = (v) => (op === '+' ? `Con thử lại: ${fmt(v)} − ${fmt(b)} = ${fmt(v - b)}, chưa bằng ${fmt(a)}.` : `Con thử lại: ${fmt(v)} + ${fmt(b)} = ${fmt(v + b)}, chưa bằng ${fmt(a)}.`);
+      for (const dlt of [10, -10, 100, -100]) pool.push({ v: res + dlt, code: 'NHỚ', why: chk(res + dlt) });
+      const wr = pickBalanced(rng, res, pool);
+      const who = pick(rng, NAMES);
+      const estTxt = `Ước lượng ${fmt(ea)} ${op} ${fmt(eb)} = ${fmt(est)}.`;
+      return {
+        id: 'g7.6', src: '[biến thể mới]', type: 'choice',
+        prompt: `${rng.next() < 0.5 ? `${who} tính ` : 'Tính '}${fmt(a)} ${op} ${fmt(b)}. (${estTxt})`,
+        visual: colTable(op, op === '+' ? addCalc(a, b) : subCalc(a, b), 0),
+        choices: buildChoices(rng, fmt(res), wr.map((w) => ({ text: fmt(w.v), code: w.code, why: w.why }))),
+        hint: op === '+' ? 'Hàng nào cộng được từ 10 trở lên thì viết hàng đơn vị và nhớ 1 sang hàng bên trái.' : 'Hàng nào không đủ trừ thì mượn 1 từ hàng bên trái, hàng đó phải bớt 1.',
+        explain: { steps: calcSteps(op, a, b, 'first') },
+        meta: { a, b, op },
+      };
+    },
+    solve(item) { const { a, b, op } = item.meta; return fmt(op === '+' ? a + b : a - b); },
+  },
+  {
+    id: 'g7.7', covers: ['7.5'], // nối: phép tính có ô □ (một chữ số) với chữ số điền vào
+    make(rng) {
+      const nz = (lo, hi, extra) => { for (let k = 0; k < 200; k++) { const v = int(rng, lo, hi); if (v % 10 !== 0 && (!extra || extra(v))) return v; } return lo + 1; };
+      let eqs;
+      for (let tries = 0; tries < 80; tries++) {
+        const a1 = nz(21, 69), x1 = nz(11, 99 - a1);                     // a + X = s
+        const x2 = nz(11, 80), b2 = nz(21, 99 - x2);                     // X + b = s
+        const s3 = int(rng, 45, 99), x3 = nz(11, s3 - 11);               // s − X = r
+        const x4 = nz(40, 99), b4 = nz(11, x4 - 11);                     // X − b = r
+        const holeAt = () => rng.next() < 0.5 ? 'T' : 'U';
+        const mk = (X, h, left, right, res, tmpl) => ({ X, h, left, right, res, tmpl });
+        const raw = [mk(x1, holeAt(), a1, '', a1 + x1, 'L+X'), mk(x2, holeAt(), '', b2, x2 + b2, 'X+R'), mk(x3, holeAt(), s3, '', s3 - x3, 'L−X'), mk(x4, holeAt(), '', b4, x4 - b4, 'X−R')];
+        const dig = (e) => (e.h === 'T' ? Math.floor(e.X / 10) : e.X % 10);
+        const digs = raw.map(dig);
+        if (new Set(digs).size === 4 && digs.every((d) => d > 0)) { eqs = raw.map((e) => ({ ...e, d: dig(e) })); break; }
+      }
+      if (!eqs) eqs = [{ X: 16, h: 'T', left: 67, right: '', res: 83, tmpl: 'L+X', d: 1 }, { X: 23, h: 'U', left: '', right: 48, res: 71, tmpl: 'X+R', d: 3 }, { X: 19, h: 'U', left: 56, right: '', res: 37, tmpl: 'L−X', d: 9 }, { X: 83, h: 'T', left: '', right: 28, res: 55, tmpl: 'X−R', d: 8 }];
+      const holeStr = (e) => (e.h === 'T' ? `□${e.X % 10}` : `${Math.floor(e.X / 10)}□`);
+      const text = (e) => ({ 'L+X': `${e.left} + ${holeStr(e)} = ${e.res}`, 'X+R': `${holeStr(e)} + ${e.right} = ${e.res}`, 'L−X': `${e.left} − ${holeStr(e)} = ${e.res}`, 'X−R': `${holeStr(e)} − ${e.right} = ${e.res}` })[e.tmpl];
+      const used = eqs.map((e) => e.d);
+      let extraD; do { extraD = int(rng, 1, 9); } while (used.includes(extraD));
+      const trapX = eqs[int(rng, 0, 3)].X;
+      const rightList = shuffle(rng, [...used.map(String), String(trapX), String(extraD)]);
+      const right = rightList.map((t, i) => ({ id: 'r' + (i + 1), text: t }));
+      const left = shuffle(rng, eqs.map((e, i) => ({ id: 'e' + (i + 1), text: text(e) })));
+      const pairs = {}; eqs.forEach((e, i) => { pairs['e' + (i + 1)] = right.find((r) => r.text === String(e.d)).id; });
+      const wh = (e) => ({
+        'L+X': `${holeStr(e)} = ${e.res} − ${e.left} = ${e.X}`,
+        'X+R': `${holeStr(e)} = ${e.res} − ${e.right} = ${e.X}`,
+        'L−X': `${holeStr(e)} = ${e.left} − ${e.res} = ${e.X}`,
+        'X−R': `${holeStr(e)} = ${e.res} + ${e.right} = ${e.X}`,
+      })[e.tmpl];
+      const rule = { 'L+X': 'Số hạng = tổng − số kia', 'X+R': 'Số hạng = tổng − số kia', 'L−X': 'Số trừ = số bị trừ − hiệu', 'X−R': 'Số bị trừ = hiệu + số trừ' };
+      const opOf = { 'L+X': ['−'], 'X+R': ['−'], 'L−X': ['−'], 'X−R': ['+'] };
+      const seqOf = (e) => ({ 'L+X': [e.res, e.left, e.X], 'X+R': [e.res, e.right, e.X], 'L−X': [e.left, e.res, e.X], 'X−R': [e.res, e.right, e.X] })[e.tmpl].map(String);
+      const steps = eqs.map((e, i) => ({
+        text: `${text(e)}. ${rule[e.tmpl]}: ${wh(e)}. Ô □ chỉ là MỘT chữ số, nên □ = ${e.d}${i === 3 ? ` (kết quả: ${eqs.map((q) => `${q.d}`).join(', ')}).` : '.'}`,
+        visual: { kind: 'sequence', items: seqOf(e), arrowLabels: [opOf[e.tmpl][0], '='], highlight: [2] },
+        mark: i === 3 ? 'good' : undefined,
+      }));
+      const res = eqs.map((e) => e.res).sort((x, y) => x - y);
+      return {
+        id: 'g7.7', src: '[biến thể mới]', type: 'match',
+        prompt: `Các phép tính có kết quả ${res.slice(0, -1).join(', ')} và ${res[res.length - 1]}. Mỗi ô □ là MỘT chữ số. Nối phép tính với chữ số điền vào □.`,
+        left, right, pairs,
+        hint: 'Tìm cả số có □ trước (dùng phép ngược), rồi xem chữ số nào của nó là □.',
+        explain: { steps },
+        meta: { eqs: left.map((l) => l.text) },
+      };
+    },
+    solve(item) {
+      const out = {};
+      for (const l of item.left) {
+        const m = l.text.match(/^(.*) ([+−]) (.*) = (\d+)$/);
+        const ev = (tx, d) => Number(tx.replace('□', String(d)));
+        const hits = [];
+        for (let d = 0; d <= 9; d++) { const A = ev(m[1], d), B = ev(m[3], d), v = m[2] === '+' ? A + B : A - B; if (v === Number(m[4])) hits.push(d); }
+        out[l.id] = item.right.find((r) => r.text === String(hits[0])).id;
+      }
+      return pairStr(out);
+    },
+  },
+  {
+    id: 'g7.8', covers: ['7.6'], // quy luật giữa các hình: tìm số ở hình tròn / hình còn lại
+    make(rng) {
+      const SETS = [
+        [['🟦', 'hình vuông'], ['🔺', 'hình tam giác'], ['🔵', 'hình tròn']],
+        [['⭐', 'hình ngôi sao'], ['❤️', 'hình trái tim'], ['🟣', 'hình tròn']],
+        [['🌸', 'hình bông hoa'], ['🍃', 'hình chiếc lá'], ['🍎', 'hình quả táo']],
+        [['🐱', 'hình con mèo'], ['🐶', 'hình con chó'], ['🐟', 'hình con cá']],
+        [['🟥', 'hình chữ nhật'], ['🔶', 'hình thoi'], ['🟢', 'hình tròn xanh']],
+      ];
+      const [S, T, C] = pick(rng, SETS);
+      const k = pick(rng, [2, 3, 4]), minus = rng.next() < 0.6, sg = minus ? '−' : '+', verb = minus ? 'trừ' : 'cộng';
+      const x1 = int(rng, 12, 60), y1 = minus ? int(rng, 5, Math.min(40, k * x1 - 10)) : int(rng, 5, 60);
+      const c1 = minus ? k * x1 - y1 : k * x1 + y1;
+      const x2 = int(rng, 12, 60), y2 = int(rng, 5, Math.min(60, k * x2 - 10)), c2 = minus ? k * x2 - y2 : k * x2 + y2;
+      const eq = `${S[0]} × ${k} ${sg} ${T[0]} = ${C[0]}`;
+      return {
+        id: 'g7.8', src: '[biến thể mới]', type: 'numpad',
+        prompt: `Cách tìm số ở ${C[1]}: lấy số ở ${S[1]} nhân ${k}, rồi ${verb} số ở ${T[1]}.\na) ${S[1][0].toUpperCase() + S[1].slice(1)} là ${x1}, ${T[1]} là ${y1}. Số ở ${C[1]} là bao nhiêu?\nb) ${S[1][0].toUpperCase() + S[1].slice(1)} là ${x2}, ${C[1]} là ${c2}. Số ở ${T[1]} là bao nhiêu?`,
+        visual: { kind: 'emoji', text: eq },
+        slots: [{ label: `a) ${C[1][0].toUpperCase() + C[1].slice(1)} =`, answer: String(c1), len: String(c1).length }, { label: `b) ${T[1][0].toUpperCase() + T[1].slice(1)} =`, answer: String(y2), len: String(y2).length }],
+        hint: `Bước đầu tiên luôn là nhân ${k} số ở ${S[1]}.`,
+        explain: {
+          steps: [
+            { text: `Cách tìm số ở ${C[1]}: lấy số ở ${S[1]} nhân ${k}, rồi ${verb} số ở ${T[1]}.`, visual: { kind: 'emoji', text: eq } },
+            { text: `a) ${x1} × ${k} = ${k * x1}, rồi ${k * x1} ${sg} ${y1} = ${c1}. Số ở ${C[1]} là ${c1}.`, visual: { kind: 'sequence', items: [String(x1), String(k * x1), String(c1)], arrowLabels: [`× ${k}`, `${sg} ${y1}`], highlight: [2] } },
+            { text: minus
+              ? `b) ${x2} × ${k} = ${k * x2}. Mình có ${k * x2} − (số ở ${T[1]}) = ${c2}, nên số ở ${T[1]} = ${k * x2} − ${c2} = ${y2} (số trừ = số bị trừ − hiệu).`
+              : `b) ${x2} × ${k} = ${k * x2}. Mình có ${k * x2} + (số ở ${T[1]}) = ${c2}, nên số ở ${T[1]} = ${c2} − ${k * x2} = ${y2} (số hạng = tổng − số kia).`, mark: 'good', visual: { kind: 'sequence', items: [String(x2), String(k * x2), String(c2)], arrowLabels: [`× ${k}`, `${sg} ?`], highlight: [2] } },
+          ],
+        },
+        meta: { k, minus, x1, y1, x2, c2 },
+      };
+    },
+    solve(item) {
+      const { k, minus, x1, y1, x2, c2 } = item.meta;
+      return `${minus ? k * x1 - y1 : k * x1 + y1}|${minus ? k * x2 - c2 : c2 - k * x2}`;
+    },
+  },
+  {
+    id: 'g7.9', covers: ['7.7'], // □ + □ + △ = T: tìm số ở ô
+    make(rng) {
+      const [P, Q] = pick(rng, [['□', '△'], ['○', '□'], ['△', '○'], ['□', '○'], ['○', '△'], ['△', '□']]);
+      const form = pick(rng, [{ cp: 2, cq: 1, sg: '+' }, { cp: 1, cq: 2, sg: '+' }, { cp: 3, cq: 1, sg: '+' }, { cp: 2, cq: 1, sg: '−' }]);
+      const { cp, cq, sg } = form;
+      let x, t, T;
+      do { x = int(rng, 4, 24); t = int(rng, 2, 15); T = cp * x + (sg === '+' ? cq * t : -cq * t); } while (T <= 0);
+      const eq = [...Array(cp).fill(P).join(' + '), ...Array(cq).fill(Q).map((q) => ` ${sg} ${q}`)].join('').replace(/^ /, '');
+      const pTot = cp * x, qTot = cq * t;
+      const cnt = cp === 1 ? P : `${cp} ô ${P}`;
+      const check = (v) => `${Array(cp).fill(v).join(' + ')}${Array(cq).fill(` ${sg} ${t}`).join('')} = ${cp * v + (sg === '+' ? qTot : -qTot)}`;
+      const pool = [];
+      if (cp > 1) pool.push({ v: pTot, code: 'QUY', why: `${pTot} là tổng của ${cp} ô ${P}. Mỗi ô ${P} chỉ bằng ${cp === 2 ? 'một nửa' : 'một phần ' + cp} của ${pTot}.` });
+      const wrongTot = sg === '+' ? T + qTot : T - qTot;
+      if (wrongTot % cp === 0) pool.push({ v: wrongTot / cp, code: 'NGƯỢC', why: sg === '+' ? `Tổng ${T} đã gồm ${cq > 1 ? `${cq} ô ${Q} (mỗi ô ${t})` : `${Q} = ${t}`} rồi, nên phải TRỪ ${qTot} chứ không cộng.` : `Phép tính có TRỪ ${Q}, nên ${cnt} bằng ${T} CỘNG ${qTot}, không phải trừ.` });
+      pool.push({ v: t, code: 'QUY', why: `${t} là số ở ${Q}. Ô ${P} là số khác nhé.` });
+      pool.push({ v: T, code: 'QUY', why: `${T} là kết quả của cả phép tính, chưa phải số ở ${P}.` });
+      pool.push({ v: x + 1, code: 'NHỚ', why: `Con thử lại: ${check(x + 1)}, chưa bằng ${T}.` });
+      if (x > 1) pool.push({ v: x - 1, code: 'NHỚ', why: `Con thử lại: ${check(x - 1)}, chưa bằng ${T}.` });
+      pool.push({ v: x + cq, code: 'NHỚ', why: `Con thử lại: ${check(x + cq)}, chưa bằng ${T}.` });
+      if (x > 2) pool.push({ v: x - 2, code: 'NHỚ', why: `Con thử lại: ${check(x - 2)}, chưa bằng ${T}.` });
+      const wr = pickBalanced(rng, x, pool).map((w) => ({ text: fmt(w.v), code: w.code, why: w.why }));
+      return {
+        id: 'g7.9', src: '[biến thể mới]', type: 'choice',
+        prompt: `${eq} = ${T}. Nếu ${Q} = ${t} thì ${P} bằng bao nhiêu?`,
+        choices: buildChoices(rng, fmt(x), wr),
+        hint: `Các ô ${P} bằng nhau. Hãy bỏ phần ${Q} ra khỏi ${T} trước.`,
+        explain: {
+          steps: [
+            { text: `Có ${Q} = ${t}${cq > 1 ? `, nên ${cq} ô ${Q} bằng ${qTot}` : ''}. Bỏ phần ${Q} ra khỏi ${T}: ${cnt} = ${T} ${sg === '+' ? '−' : '+'} ${qTot} = ${pTot}.`, visual: { kind: 'sequence', items: [String(T), String(qTot), String(pTot)], arrowLabels: [sg === '+' ? `− ${Q}` : `+ ${Q}`, '='], highlight: [2] } },
+            ...(cp === 1 ? [] : [{ text: `${cp} ô ${P} bằng nhau, tổng là ${pTot}. ${pTot} ÷ ${cp} = ${x} nên ${P} = ${x}.`, visual: { kind: 'sequence', items: [String(pTot), String(x)], arrowLabels: [`÷ ${cp}`], highlight: [1] } }]),
+            { text: `Thử lại: ${check(x)}. Vậy đáp án là ${fmt(x)}.`, mark: 'good' },
+          ],
+        },
+        meta: { cp, cq, sg, t, T },
+      };
+    },
+    solve(item) {
+      const { cp, cq, sg, t, T } = item.meta;
+      for (let x = 0; x <= 500; x++) if (cp * x + (sg === '+' ? 1 : -1) * cq * t === T) return fmt(x);
+      return 'không có';
+    },
+  },
 ];
 
 export default {
@@ -498,12 +711,15 @@ export default {
     { text: 'Ước lượng: làm tròn CẢ HAI số đến cùng một hàng (hàng trăm) rồi cộng hoặc trừ. Kết quả tính đúng phải gần ước lượng.', visual: { kind: 'table', headers: ['Số', 'Làm tròn hàng trăm'], rows: [['526', '500'], ['195', '200'], ['526 + 195 ≈', '500 + 200 = 700']] } },
     { text: 'Có nhớ hoặc mượn ở cả hàng đơn vị và hàng chục. Nhớ xong thì cộng (hoặc bớt đi) ở hàng bên cạnh.', visual: colTable('+', addCalc(526, 195), 3) },
     { text: 'Tìm số còn thiếu thì dùng phép tính ngược. Số hạng chưa biết: lấy tổng trừ số hạng kia. Số bị trừ: lấy hiệu cộng số trừ. Số trừ: lấy số bị trừ trừ đi hiệu.', visual: { kind: 'table', headers: ['Số cần tìm', 'Cách tìm'], rows: [['Số hạng', 'tổng − số kia'], ['Số bị trừ', 'hiệu + số trừ'], ['Số trừ', 'số bị trừ − hiệu']] } },
+    { text: 'Cách làm nháp: con đặt tính thẳng cột, hàng đơn vị thẳng hàng đơn vị, rồi làm từ phải sang trái. Hàng nào không đủ trừ thì con đổi 1 ở hàng bên trái thành 10.', visual: vcalcDone('−', 826, 457) },
   ],
   lesson: [
-    { text: 'Ước lượng 526 + 195. Làm tròn 526 đến hàng trăm: chữ số hàng chục là 2, nên giữ, thành 500.', visual: nlHundred(526) },
-    { text: '195: chữ số hàng chục là 9, nên lên, thành 200. Ước lượng: 500 + 200 = 700.', visual: nlHundred(195) },
-    { text: 'Tính thật bằng cách đặt dọc. Hàng đơn vị: 6 + 5 = 11, viết 1 và nhớ 1 sang hàng chục.', visual: colTable('+', addCalc(526, 195), 1) },
-    { text: 'Hàng chục: 2 + 9 + 1 = 12, viết 2 nhớ 1. Hàng trăm: 5 + 1 + 1 = 7. Kết quả 721 gần ước lượng 700, rất hợp lí.', visual: colTable('+', addCalc(526, 195), 3) },
+    // 1) ước lượng trước
+    ...tidy(estimateSteps('+', 358, 467).slice(0, 2)),
+    // 2) cộng nhóm lại, viết nháp từng cột
+    ...tidy(vcalcSteps('+', 358, 467, { maxSteps: 5 })),
+    // 3) trừ nhóm lại
+    ...tidy(vcalcSteps('−', 826, 457, { maxSteps: 5 })),
     { text: 'Tia số giúp tính nhẩm: 48 + 57 thì nhảy +60 (làm tròn 57 lên 60), rồi nhảy lùi 3. Được 105.', visual: nlJump(48, [{ to: 108, label: '+60' }, { to: 105, label: '−3' }], 2) },
     { text: 'Số thiếu thì dùng phép ngược. ○ + 48 = 71 thì ○ = 71 − 48 = 23. Thử lại: 23 + 48 = 71.', visual: { kind: 'sequence', items: ['71', '48', '23'], arrowLabels: ['−', '='], highlight: [2], anim: 'reveal' } },
   ],

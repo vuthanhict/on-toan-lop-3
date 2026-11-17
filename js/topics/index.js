@@ -5,7 +5,9 @@ let cache = null;
 export function loadTopics() {
   if (cache) return cache;
   cache = Promise.all(TOPIC_IDS.map((id) => import('./' + id + '.js').then((m) => m.default).catch((e) => { console.warn('topic missing', id, e && e.message); return null; })))
-    .then((list) => list.filter(Boolean).sort((a, b) => a.no - b.no));
+    .then((list) => list.filter(Boolean).sort((a, b) => a.no - b.no))
+    // gộp bộ sinh bài 'column' (tập đặt tính) vào các chủ đề
+    .then((list) => import('./column-gens.js').then((m) => { m.mergeColumnGens(list); return list; }).catch((e) => { console.warn('column-gens missing', e && e.message); return list; }));
   return cache;
 }
 

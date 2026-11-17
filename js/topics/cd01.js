@@ -1,5 +1,39 @@
 import { pick, int, shuffle } from '../core/rng.js';
 
+// ---- Công cụ cho bộ sinh bài (chống đoán mò) ----
+const NAMES = ['Mai', 'Nam', 'Lan', 'Hùng', 'Minh', 'An', 'Bình', 'Chi', 'Dũng', 'Hà', 'Khoa', 'Linh', 'Phúc', 'Quân', 'Thảo', 'Việt'];
+const cand = (v, code, why) => ({ v, w: W(f(v), code, why) });
+// Chọn 3 đáp án nhiễu từ `pool` sao cho đáp án đúng có thứ hạng (bé → lớn) ngẫu nhiên đều: không bao giờ "luôn ở giữa".
+function rankPick(rng, right, pool) {
+  const seen = new Set([right]);
+  const P = pool.filter((p) => (seen.has(p.v) ? false : (seen.add(p.v), true)));
+  const lo = shuffle(rng, P.filter((p) => p.v < right)), hi = shuffle(rng, P.filter((p) => p.v > right));
+  const ok = [0, 1, 2, 3].filter((r) => lo.length >= r && hi.length >= 3 - r);
+  if (!ok.length) return shuffle(rng, P).slice(0, 3).map((p) => p.w);
+  const r = pick(rng, ok);
+  return [...lo.slice(0, r), ...hi.slice(0, 3 - r)].map((p) => p.w);
+}
+const isEq = (a) => a.every((x, i) => i === 0 || x - a[i - 1] === a[1] - a[0]);
+const stepsOf = (a) => a.slice(1).map((x, i) => step(x - a[i]));
+const TL = (a) => a.map(f).join(', ');
+const seqVis = (a) => ({ kind: 'sequence', items: a, arrowLabels: stepsOf(a) });
+// Dãy 5 số KHÔNG cách đều (mỗi kiểu là một lỗi nhận dạng hay gặp)
+const NONEQ = {
+  tri: (rng) => { const a = int(rng, 1, 30), c = int(rng, 1, 3); return [a, a + c, a + 2 * c + 1, a + 3 * c + 3, a + 4 * c + 6]; },
+  dbl: (rng) => { const a = int(rng, 1, 9); return [a, 2 * a, 4 * a, 8 * a, 16 * a]; },
+  tpl: (rng) => { const a = int(rng, 1, 4); return [a, 3 * a, 9 * a, 27 * a, 81 * a]; },
+  alt: (rng) => { const a = int(rng, 1, 40), d = int(rng, 2, 9); return [a, a + d, a + 2 * d + 2, a + 3 * d + 2, a + 4 * d + 4]; },
+  sq: (rng) => { const n = int(rng, 1, 7); return [0, 1, 2, 3, 4].map((i) => (n + i) ** 2); },
+  brk: (rng) => { const a = int(rng, 1, 40), d = int(rng, 3, 9); return [a, a + d, a + 2 * d, a + 3 * d + 2, a + 4 * d]; },
+  zig: (rng) => { const a = int(rng, 10, 50), d = int(rng, 2, 9); return [a, a + d, a, a + d, a]; },
+};
+const NONEQ_KEYS = Object.keys(NONEQ);
+function eqSeq(rng) {
+  const d = pick(rng, [2, 3, 4, 5, 6, 7, 8, 9, 10, 12, 15, 20, 25]), sg = rng.next() < 0.35 ? -1 : 1;
+  const a = sg > 0 ? int(rng, -15, 60) : int(rng, 10, 100);
+  return [0, 1, 2, 3, 4].map((i) => a + i * sg * d);
+}
+
 const MI = '−';
 const f = (n) => (n < 0 ? MI : '') + String(Math.abs(n)).replace(/\B(?=(\d{3})+(?!\d))/g, ' ');
 const R = (text) => ({ text, correct: true });
@@ -177,7 +211,7 @@ export default {
 
   generators: [
     {
-      id: 'g1.1',
+      id: 'g1.1', covers: ['1.1'],
       make(rng) {
         const s = pick(rng, [1, -1]);
         const d = s > 0 ? pick(rng, [10, 100, 1000]) : pick(rng, [10, 100]);
@@ -188,17 +222,24 @@ export default {
           const A = String(a), B = String(right);
           if (A.length === B.length && A.split('').filter((c, i) => c !== B[i]).length === 1) break;
         }
-        const lo = a + s * (d / 10), hi = a + s * d * 10, rev = a - s * d;
-        const choices = shuffle(rng, [
-          R(f(right)),
-          W(f(rev), 'NGƯỢC', `Đếm ${s > 0 ? 'xuôi là đi lên' : 'ngược là đi xuống'}, nên phải ${s > 0 ? 'cộng' : 'trừ'}, không phải ${s > 0 ? 'trừ' : 'cộng'}.`),
-          W(f(lo), 'HÀNG', `Số này ${s > 0 ? 'thêm' : 'bớt'} ${f(d / 10)}, là hàng ${hang(d / 10)}. Đề cho ${f(d)}, là hàng ${hang(d)}.`),
-          W(f(hi), 'HÀNG', `Số này ${s > 0 ? 'thêm' : 'bớt'} ${f(d * 10)}, là hàng ${hang(d * 10)}. Đề chỉ cho ${f(d)}, là hàng ${hang(d)}.`),
+        const nm = s > 0 ? 'xuôi là đi lên' : 'ngược là đi xuống', vb = s > 0 ? 'thêm' : 'bớt', op = s > 0 ? 'cộng' : 'trừ', opp = s > 0 ? 'trừ' : 'cộng';
+        const pool = [
+          cand(a - s * d, 'NGƯỢC', `Đếm ${nm}, nên phải ${op}, không phải ${opp}.`),
+          cand(a - s * d / 10, 'NGƯỢC', `Số này đi sai chiều và sai hàng. Đếm ${nm}, và ${f(d)} là hàng ${hang(d)}.`),
+          cand(a + s * d / 10, 'HÀNG', `Số này ${vb} ${f(d / 10)}, là hàng ${hang(d / 10)}. Đề cho ${f(d)}, là hàng ${hang(d)}.`),
+          cand(a + s * d * 10, 'HÀNG', `Số này ${vb} ${f(d * 10)}, là hàng ${hang(d * 10)}. Đề chỉ cho ${f(d)}, là hàng ${hang(d)}.`),
+          cand(a + s * d * 100, 'HÀNG', `Số này ${vb} ${f(d * 100)}, nhiều hơn rất nhiều. Đề chỉ cho ${f(d)}.`),
+          cand(a + s * d * 2, 'ĐẾM', `Số này ${vb} hai lần ${f(d)}. Đề chỉ nhảy MỘT bước ${f(d)}.`),
+        ].filter((p) => p.v > 0);
+        const choices = shuffle(rng, [R(f(right)), ...rankPick(rng, right, pool)]);
+        const k = Math.round(Math.log10(d)), nmA = pick(rng, NAMES);
+        const prompt = pick(rng, [
+          `${nmA} đếm ${s > 0 ? 'xuôi, mỗi lần thêm' : 'ngược, mỗi lần bớt'} ${f(d)}, bắt đầu từ ${f(a)}. Số tiếp theo là số nào?`,
+          `${nmA} đếm số theo dãy: bắt đầu từ ${f(a)}, cứ ${s > 0 ? 'thêm' : 'bớt'} ${f(d)} một lần. Số đứng ngay sau ${f(a)} là số nào?`,
         ]);
-        const k = Math.round(Math.log10(d));
         return {
           id: 'g1.1', src: '[biến thể mới]', type: 'choice', layout: 'grid2',
-          prompt: `Mai đếm ${s > 0 ? 'xuôi, mỗi lần thêm' : 'ngược, mỗi lần bớt'} ${f(d)}, bắt đầu từ ${f(a)}. Số tiếp theo là số nào?`,
+          prompt,
           hint: `${s > 0 ? 'Cộng' : 'Trừ'} ${f(d)} thì chữ số nào thay đổi?`,
           choices, meta: { a, d, s },
           explain: { steps: [
@@ -211,29 +252,39 @@ export default {
       solve(item) { const { a, d, s } = item.meta; return f(a + s * d); },
     },
     {
-      id: 'g1.2',
+      id: 'g1.2', covers: ['1.2'],
       make(rng) {
         const s = pick(rng, [1, -1]);
-        const d = pick(rng, [5, 10, 20, 25, 50]);
-        const k = int(rng, 4, 7);
-        const a = d * int(rng, k + 1, k + 8);
+        const d = pick(rng, [2, 3, 4, 5, 6, 7, 8, 9, 10, 12, 15, 20, 25, 50, 100]);
+        const k = int(rng, 4, 8);
+        const a = int(rng, d * k + 1, d * k + 80);
         const val = (j) => a + s * d * (j - 1);
         const right = val(k);
-        const choices = shuffle(rng, [
-          R(f(right)),
-          W(f(val(k - 1)), 'ĐẾM', `${f(val(k - 1))} mới là số đứng thứ ${k - 1}. Còn phải đếm tiếp thêm một số nữa.`),
-          W(f(val(k + 1)), 'ĐẾM', `${f(val(k + 1))} là số đứng thứ ${k + 1}, đã đi quá một bước.`),
-          W(f(a - s * d * (k - 1)), 'NGƯỢC', `Dãy này ${s > 0 ? 'cộng thêm' : 'bớt đi'} ${d} mỗi lần nên các số ${s > 0 ? 'lớn' : 'nhỏ'} dần.`),
-        ]);
+        const pool = [
+          cand(val(k - 1), 'ĐẾM', `${f(val(k - 1))} mới là số đứng thứ ${k - 1}. Còn phải đếm tiếp thêm một số nữa.`),
+          cand(val(k + 1), 'ĐẾM', `${f(val(k + 1))} là số đứng thứ ${k + 1}, đã đi quá một bước.`),
+          cand(val(k - 2), 'ĐẾM', `${f(val(k - 2))} là số đứng thứ ${k - 2}. Còn phải đếm thêm hai số nữa.`),
+          cand(val(k + 2), 'ĐẾM', `${f(val(k + 2))} là số đứng thứ ${k + 2}, đã đi quá hai bước.`),
+          cand(a - s * d * (k - 1), 'NGƯỢC', `Dãy này ${s > 0 ? 'cộng thêm' : 'bớt đi'} ${f(d)} mỗi lần nên các số ${s > 0 ? 'lớn' : 'nhỏ'} dần.`),
+          cand(d * k, 'QUY', `Con lấy ${f(d)} nhân với ${k}, như thể dãy bắt đầu từ 0. Nhưng dãy này bắt đầu từ ${f(a)}.`),
+        ].filter((p) => p.v > 0);
+        const choices = shuffle(rng, [R(f(right)), ...rankPick(rng, right, pool)]);
         const early = Array.from({ length: k }, (_, i) => (i === k - 1 ? '?' : val(i + 1)));
         const all = Array.from({ length: k }, (_, i) => val(i + 1));
+        const nmA = pick(rng, NAMES), lead = [val(1), val(2), val(3)].map(f).join(', ');
+        const verb = s > 0 ? 'thêm' : 'bớt đi';
+        const prompt = pick(rng, [
+          `Dãy số bắt đầu từ ${f(a)}, mỗi lần ${verb} ${f(d)}. Số đứng thứ ${k} trong dãy là số nào?`,
+          `${nmA} xếp các thẻ số: thẻ đầu ghi ${f(a)}, mỗi thẻ sau ${s > 0 ? 'hơn' : 'kém'} thẻ trước ${f(d)}. Thẻ thứ ${k} ghi số nào?`,
+          `${nmA} viết dãy ${lead}, … cứ ${verb} ${f(d)} một lần. Số đứng thứ ${k} trong dãy là số nào?`,
+        ]);
         return {
           id: 'g1.2', src: '[biến thể mới]', type: 'choice', layout: 'grid2',
-          prompt: `Dãy số bắt đầu từ ${f(a)}, mỗi lần ${s > 0 ? 'thêm' : 'bớt đi'} ${d}. Số đứng thứ ${k} trong dãy là số nào?`,
+          prompt,
           hint: 'Viết ra từng số một: thứ nhất, thứ hai, thứ ba…',
           choices, meta: { a, d, s, k },
           explain: { steps: [
-            { text: `Số thứ nhất là ${f(a)}. Mỗi lần ${s > 0 ? 'thêm' : 'bớt'} ${d}.`, visual: { kind: 'sequence', items: early, arrowLabels: arrows(k - 1, step(s * d)), highlight: [0] } },
+            { text: `Số thứ nhất là ${f(a)}. Mỗi lần ${s > 0 ? 'thêm' : 'bớt'} ${f(d)}.`, visual: { kind: 'sequence', items: early, arrowLabels: arrows(k - 1, step(s * d)), highlight: [0] } },
             { text: `Từ số thứ nhất đến số thứ ${k} có ${k - 1} bước nhảy (không phải ${k} bước).`, visual: { kind: 'sequence', items: all, arrowLabels: arrows(k - 1, step(s * d)), anim: 'reveal' } },
             { text: `Vậy đáp án là ${f(right)}.`, mark: 'good', visual: { kind: 'sequence', items: all, arrowLabels: arrows(k - 1, step(s * d)), highlight: [k - 1] } },
           ] },
@@ -242,10 +293,10 @@ export default {
       solve(item) { const { a, d, s, k } = item.meta; return f(a + s * d * (k - 1)); },
     },
     {
-      id: 'g1.3',
+      id: 'g1.3', covers: ['1.3'],
       make(rng) {
-        const d = int(rng, 2, 10);
-        const k = int(rng, 3, 6);
+        const d = pick(rng, [2, 3, 4, 5, 6, 7, 8, 9, 10, 12, 15, 20, 25, 50]);
+        const k = int(rng, 2, 6);
         const desc = rng.next() < 0.4;
         const start = -d * k;
         let terms = Array.from({ length: 8 }, (_, i) => start + i * d);
@@ -255,8 +306,7 @@ export default {
         const sg = desc ? -d : d;
         const lab = ['Số đầu tiên:', 'Số thứ hai:', 'Sau số cuối đã cho:', 'Tiếp theo:', 'Tiếp nữa:'];
         const slots = blanks.map((b, i) => {
-          const v = f(terms[b]);
-          const s = { label: lab[i], answer: v };
+          const s = { label: lab[i], answer: f(terms[b]) };
           if (terms[b] < 0) s.allowNeg = true;
           return s;
         });
@@ -268,9 +318,11 @@ export default {
         const lo = Math.min(...terms) - d, hi = Math.max(...terms) + d;
         const nl = (pts, extra = {}) => ({ kind: 'numberline', min: lo, max: hi, step: d, labelEvery: d, points: pts.map((t) => ({ at: t, color: t === 0 ? '#F5893A' : undefined })), ...extra });
         const g3 = given.map((i) => terms[i]);
+        const nmA = pick(rng, NAMES);
+        const lead = pick(rng, ['Điền năm số còn thiếu vào dãy cách đều:', `${nmA} viết dãy số cách đều nhưng bị nhoè mất năm số. Con điền giúp bạn nhé:`, `Con tìm năm số còn thiếu trong dãy số cách đều của ${nmA}:`]);
         return {
           id: 'g1.3', src: '[biến thể mới]', type: 'numpad',
-          prompt: `Điền năm số còn thiếu vào dãy cách đều:\n${items.map((x) => (x === '?' ? '…' : f(x))).join(', ')}`,
+          prompt: `${lead}\n${items.map((x) => (x === '?' ? '…' : f(x))).join(', ')}`,
           hint: 'Hai số đứng cạnh nhau hơn kém nhau mấy? Đi tiếp theo cả hai phía và nhớ số 0.',
           visual: { kind: 'sequence', items: items.map((x) => (x === '?' ? '?' : x)) },
           slots, alt, wrongHints, meta: { d, k, desc, terms },
@@ -291,59 +343,225 @@ export default {
       },
     },
     {
+      // Nhận biết dãy cách đều / không cách đều (chọn một dãy)
       id: 'g1.4',
       make(rng) {
-        const a = int(rng, 2, 40), d = int(rng, 2, 9);
-        const T = (arr) => arr.map(f).join(', ');
-        const eq = [0, 1, 2, 3, 4].map((i) => a + i * d);
-        const tri = [a, a + 1, a + 3, a + 6, a + 10];
-        const dbl = [a, 2 * a, 4 * a, 8 * a, 16 * a];
-        const alt = [a, a + d, a + 2 * d + 2, a + 3 * d + 2, a + 4 * d + 4];
-        const choices = shuffle(rng, [
-          R(T(eq)),
-          W(T(tri), 'QUY', 'Bước nhảy là +1, +2, +3, +4: cứ đổi hoài, không đều.'),
-          W(T(dbl), 'QUY', 'Mỗi số gấp đôi số trước (nhân 2), không phải cộng cùng một số.'),
-          W(T(alt), 'QUY', `Bước nhảy là +${d}, +${d + 2}, +${d}, +${d + 2}: hai bước đầu đã khác nhau.`),
-        ]);
+        const askEq = rng.next() < 0.5;
+        const keys = shuffle(rng, NONEQ_KEYS);
+        let seqs, right;
+        for (let t = 0; t < 80; t++) {
+          if (askEq) { right = eqSeq(rng); seqs = [right, ...keys.slice(0, 3).map((k) => NONEQ[k](rng))]; }
+          else { right = NONEQ[keys[0]](rng); seqs = [right, eqSeq(rng), eqSeq(rng), eqSeq(rng)]; }
+          if (new Set(seqs.map(TL)).size === 4 && seqs.every((x, i) => (i === 0) === (askEq ? isEq(x) : !isEq(x)) || (askEq ? !isEq(x) : isEq(x)))) break;
+        }
+        const T = TL;
+        const wrongOf = (x) => (askEq
+          ? W(T(x), 'QUY', `Bước nhảy là ${stepsOf(x).join(', ')}: các bước không bằng nhau nên chưa phải dãy cách đều.`)
+          : W(T(x), 'ĐỌC', `Dãy này có bước ${stepsOf(x)[0]} mãi mãi, nên là dãy CÁCH ĐỀU. Đề hỏi dãy KHÔNG cách đều.`));
+        const choices = shuffle(rng, [R(T(right)), ...seqs.slice(1).map(wrongOf)]);
+        const other = seqs.slice(1).find((x) => (askEq ? !isEq(x) : isEq(x)));
+        const nmA = pick(rng, NAMES);
         return {
           id: 'g1.4', src: '[biến thể mới]', type: 'choice', layout: 'list',
-          prompt: 'Dãy số nào là dãy CÁCH ĐỀU?',
+          prompt: askEq ? pick(rng, ['Dãy số nào là dãy CÁCH ĐỀU?', `${nmA} ghi bốn dãy số lên bảng. Dãy nào là dãy CÁCH ĐỀU?`]) : pick(rng, ['Dãy số nào KHÔNG phải dãy cách đều?', `${nmA} ghi bốn dãy số lên bảng. Dãy nào KHÔNG cách đều?`]),
           hint: 'Tính bước nhảy giữa từng cặp số đứng cạnh nhau, các bước phải bằng nhau.',
-          choices, meta: { a, d },
+          choices, meta: { askEq, seqs },
           explain: { steps: [
-            { text: 'Dãy cách đều là dãy có mọi bước nhảy bằng nhau. Mình tính bước nhảy giữa từng cặp số đứng cạnh nhau.' },
-            { text: `Dãy ${T(eq)} có bước +${d} mãi mãi, nên cách đều.`, mark: 'good', visual: { kind: 'sequence', items: eq, arrowLabels: arrows(4, '+' + d) } },
-            { text: `Dãy ${T(tri)} có bước +1, +2, +3, +4, còn các dãy kia cũng có bước đổi, nên không cách đều.`, mark: 'bad', visual: { kind: 'sequence', items: tri, arrowLabels: ['+1', '+2', '+3', '+4'] } },
-            { text: `Vậy đáp án là ${T(eq)}.`, mark: 'good' },
+            { text: 'Dãy cách đều là dãy có mọi bước nhảy bằng nhau. Con tính bước nhảy giữa từng cặp số đứng cạnh nhau.' },
+            askEq ? { text: `Dãy ${T(right)} có bước ${stepsOf(right)[0]} mãi mãi, nên cách đều.`, mark: 'good', visual: seqVis(right) }
+              : { text: `Dãy ${T(right)} có bước ${stepsOf(right).join(', ')}: không đều.`, mark: 'bad', visual: seqVis(right) },
+            askEq ? { text: `Dãy ${T(other)} có bước ${stepsOf(other).join(', ')}: không đều, nên không cách đều.`, mark: 'bad', visual: seqVis(other) }
+              : { text: `Dãy ${T(other)} có bước ${stepsOf(other)[0]} mãi mãi, nên cách đều.`, mark: 'good', visual: seqVis(other) },
+            { text: `Vậy đáp án là ${T(right)}.`, mark: 'good' },
           ] },
         };
       },
-      solve(item) { const { a, d } = item.meta; return [0, 1, 2, 3, 4].map((i) => f(a + i * d)).join(', '); },
+      solve(item) { const { askEq, seqs } = item.meta; return TL(seqs.find((x) => isEq(x) === askEq)); },
     },
     {
+      // Số chính phương (chọn số xếp được hình vuông / không xếp được)
       id: 'g1.5',
       make(rng) {
-        const n = int(rng, 3, 12);
-        const right = n * n;
-        const choices = shuffle(rng, [
-          R(f(right)),
-          W(f(n * (n + 1)), 'QUY', `${n} × ${n + 1} = ${n * (n + 1)}: hai thừa số khác nhau nên chấm chỉ xếp được hình chữ nhật, không phải hình vuông.`),
-          W(f(right + 1), 'QUY', `${f(right + 1)} hơn ${right} một đơn vị, không xếp đều thành ${n} hàng ${n} cột được.`),
-          W(f(right - 1), 'QUY', `${f(right - 1)} kém ${right} một đơn vị, nên xếp vuông bị thiếu một chấm.`),
-        ]);
+        const mode = pick(rng, ['is', 'isnot']);
+        const obj = pick(rng, ['viên bi', 'hạt cườm', 'quân cờ', 'chiếc cúc áo', 'viên gạch', 'con tem']);
+        const nmA = pick(rng, NAMES);
+        if (mode === 'is') {
+          const n = int(rng, 3, 12), right = n * n;
+          const pool = [
+            cand(n * (n + 1), 'QUY', `${n} × ${n + 1} = ${n * (n + 1)}: hai thừa số khác nhau nên chấm chỉ xếp được hình chữ nhật, không phải hình vuông.`),
+            cand(n * (n - 1), 'QUY', `${n} × ${n - 1} = ${n * (n - 1)}: hai thừa số khác nhau nên chấm chỉ xếp được hình chữ nhật, không phải hình vuông.`),
+            cand(right + 1, 'QUY', `${f(right + 1)} hơn ${right} một đơn vị, nên xếp ${n} hàng ${n} cột thì thừa một chấm.`),
+            cand(right - 1, 'QUY', `${f(right - 1)} kém ${right} một đơn vị, nên xếp vuông bị thiếu một chấm.`),
+            cand(right + 2, 'QUY', `${f(right + 2)} hơn ${right} hai đơn vị, nên xếp ${n} hàng ${n} cột thì thừa hai chấm.`),
+            cand(right - 2, 'QUY', `${f(right - 2)} kém ${right} hai đơn vị, nên xếp vuông bị thiếu hai chấm.`),
+          ];
+          const choices = shuffle(rng, [R(f(right)), ...rankPick(rng, right, pool)]);
+          const nums = choices.map((c) => Number(c.text.replace(/ /g, '')));
+          return {
+            id: 'g1.5', src: '[biến thể mới]', type: 'choice', layout: 'grid2',
+            prompt: pick(rng, ['Số nào là số chính phương? Đó là số xếp chấm tròn được thành hình vuông.', `${nmA} muốn xếp ${obj} thành hình vuông đầy đủ (số hàng bằng số cột, không thừa, không thiếu). ${nmA} có số ${obj} nào dưới đây thì xếp được?`]),
+            hint: 'Xếp được hình vuông thì số hàng bằng số cột, nên số chấm là một số nhân với chính nó.',
+            choices, meta: { mode, nums },
+            explain: { steps: [
+              { text: 'Số chính phương xếp được thành hình vuông. Số hàng bằng số cột, nên số chấm là một số nhân với chính nó.' },
+              { text: `${n} × ${n} = ${f(right)}, nên ${f(right)} xếp được ${n} hàng, mỗi hàng ${n} chấm.`, visual: n <= 8 ? { kind: 'dots', pattern: 'square', n, shape: 'circle', anim: 'grow' } : { kind: 'array', rows: n, cols: n, showEq: true } },
+              { text: `Vậy đáp án là ${f(right)}.`, mark: 'good' },
+            ] },
+          };
+        }
+        const ns = shuffle(rng, [2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]).slice(0, 3);
+        let v;
+        do { v = int(rng, 5, 145); } while (Number.isInteger(Math.sqrt(v)));
+        const sq = Math.floor(Math.sqrt(v));
+        const choices = shuffle(rng, [R(f(v)), ...ns.map((n) => W(f(n * n), 'ĐỌC', `${n} × ${n} = ${n * n}, nên ${f(n * n)} xếp được hình vuông ${n} hàng ${n} cột. Đề hỏi số KHÔNG xếp được.`))]);
+        const nums = [v, ...ns.map((n) => n * n)];
         return {
           id: 'g1.5', src: '[biến thể mới]', type: 'choice', layout: 'grid2',
-          prompt: 'Số nào là số chính phương? Đó là số xếp chấm tròn được thành hình vuông.',
-          hint: 'Xếp được hình vuông thì số hàng bằng số cột, nên số chấm là một số nhân với chính nó.',
-          choices, meta: { n },
+          prompt: pick(rng, ['Số nào KHÔNG phải là số chính phương? (Số chính phương là số xếp chấm tròn được thành hình vuông.)', `${nmA} xếp ${obj} thành hình vuông đầy đủ (số hàng bằng số cột). Số ${obj} nào dưới đây KHÔNG xếp được như vậy?`]),
+          hint: 'Thử xem số đó có bằng một số nhân với chính nó không.',
+          choices, meta: { mode, nums },
           explain: { steps: [
-            { text: 'Số chính phương xếp được thành hình vuông. Số hàng bằng số cột, nên số chấm là một số nhân với chính nó.' },
-            { text: `${n} × ${n} = ${f(right)}, nên ${f(right)} xếp được ${n} hàng, mỗi hàng ${n} chấm.`, visual: n <= 8 ? { kind: 'dots', pattern: 'square', n, shape: 'circle', anim: 'grow' } : { kind: 'array', rows: n, cols: n, showEq: true } },
+            { text: 'Số chính phương là một số nhân với chính nó. Con thử xem số nào không viết được như vậy.' },
+            { text: `${f(v)} nằm giữa ${sq} × ${sq} = ${sq * sq} và ${sq + 1} × ${sq + 1} = ${(sq + 1) * (sq + 1)}, không bằng số nào nhân với chính nó.`, mark: 'bad' },
+            { text: `Vậy đáp án là ${f(v)}.`, mark: 'good' },
+          ] },
+        };
+      },
+      solve(item) {
+        const { mode, nums } = item.meta; const isSq = (x) => Number.isInteger(Math.sqrt(x));
+        return f(nums.find((x) => isSq(x) === (mode === 'is')));
+      },
+    },
+    {
+      // Phân loại dãy: cách đều / không cách đều
+      id: 'g1.6', covers: ['1.4'],
+      make(rng) {
+        const ne = int(rng, 2, 3);
+        let seqs;
+        for (let t = 0; t < 80; t++) {
+          const keys = shuffle(rng, NONEQ_KEYS).slice(0, 5 - ne);
+          seqs = shuffle(rng, [...Array.from({ length: ne }, () => eqSeq(rng)), ...keys.map((k) => NONEQ[k](rng))]);
+          if (new Set(seqs.map(TL)).size === 5) break;
+        }
+        const ids = ['a', 'b', 'c', 'd', 'e'];
+        const chips = seqs.map((x, i) => ({ id: ids[i], text: TL(x) }));
+        const answer = {}; seqs.forEach((x, i) => { answer[ids[i]] = isEq(x) ? 'deu' : 'khong'; });
+        const eqs = seqs.filter(isEq), nes = seqs.filter((x) => !isEq(x));
+        const nmA = pick(rng, NAMES);
+        return {
+          id: 'g1.6', src: '[biến thể mới]', type: 'classify',
+          prompt: pick(rng, ['Chạm một dãy số, rồi chạm ô đúng: dãy đó CÁCH ĐỀU hay KHÔNG cách đều?', `${nmA} ghi năm dãy số lên bảng. Chạm một dãy số, rồi chạm ô đúng: dãy đó CÁCH ĐỀU hay KHÔNG cách đều?`]),
+          hint: 'Tính bước nhảy giữa từng cặp số đứng cạnh nhau xem có bằng nhau không.',
+          chips, buckets: [{ id: 'deu', text: 'Cách đều' }, { id: 'khong', text: 'Không cách đều' }], answer,
+          meta: { seqs },
+          explain: { steps: [
+            { text: `${TL(eqs[0])} cứ ${stepsOf(eqs[0])[0]} mãi mãi, ${eqs.length > 1 ? `và ${TL(eqs[1])} cứ ${stepsOf(eqs[1])[0]} mãi mãi. ` : ''}Bước đều nhau nên ${eqs.length > 1 ? 'hai dãy này' : 'dãy này'} cách đều.`, mark: 'good', visual: seqVis(eqs[0]) },
+            { text: `${TL(nes[0])} có bước ${stepsOf(nes[0]).join(', ')}: bước cứ đổi, không phải cộng cùng một số.`, mark: 'bad', visual: seqVis(nes[0]) },
+            ...(nes.length > 1 ? [{ text: `${TL(nes[1])} có bước ${stepsOf(nes[1]).join(', ')}, cũng không đều.`, mark: 'bad', visual: seqVis(nes[1]) }] : []),
+            { text: `Vậy có ${eqs.length} dãy cách đều, còn ${nes.length} dãy không cách đều.`, mark: 'good' },
+          ] },
+        };
+      },
+      solve(item) { const o = {}; item.meta.seqs.forEach((x, i) => { o['abcde'[i]] = isEq(x) ? 'deu' : 'khong'; }); return o; },
+    },
+    {
+      // Số thuộc / không thuộc dãy cộng d
+      id: 'g1.7', covers: ['1.5', '1.7'],
+      make(rng) {
+        const d = pick(rng, [3, 4, 5, 6, 7, 8, 9, 10, 12, 15, 20, 25, 50]);
+        const a = rng.next() < 0.4 ? d : int(rng, 1, d - 1);
+        const inSeq = (x) => x >= a && (x - a) % d === 0;
+        const term = (j) => a + j * d;
+        const mode = pick(rng, ['in', 'out']);
+        const nShow = a === d ? 5 : 4;
+        const near = () => { const j = int(rng, nShow, nShow + 8), dl = int(rng, 1, d - 1); return term(j) + dl; };
+        const whyOut = (v) => {
+          const lo = a + Math.floor((v - a) / d) * d;
+          return `Đếm bước ${d}: ${f(lo)}, ${f(lo + d)}. Dãy không gặp ${f(v)}.`;
+        };
+        const mkOut = (v) => (a !== d && v % d === 0
+          ? W(f(v), 'QUY', `${f(v)} nằm trong dãy bắt đầu từ ${d}. Dãy này bắt đầu từ ${a}, nên không có ${f(v)}.`)
+          : W(f(v), 'ĐẾM', whyOut(v)));
+        const mkIn = (v) => W(f(v), 'ĐỌC', `${f(v)} THUỘC dãy: ${f(a)} + ${(v - a) / d} lần ${d} = ${f(v)}. Đề hỏi số KHÔNG thuộc dãy.`);
+        let choices, right, nums;
+        if (mode === 'in') {
+          right = term(int(rng, nShow, nShow + 8));
+          const set = new Set();
+          for (let t = 0; t < 40 && set.size < 8; t++) { const v = near(); if (!inSeq(v)) set.add(v); }
+          if (a !== d) set.add(d * int(rng, 3, 14));
+          const pool = [...set].filter((v) => !inSeq(v)).map((v) => ({ v, w: mkOut(v) }));
+          choices = [R(f(right)), ...rankPick(rng, right, pool)];
+          nums = choices.map((c) => Number(c.text.replace(/ /g, '')));
+        } else {
+          const js = shuffle(rng, [0, 1, 2, 3, 4, 5, 6, 7, 8].map((x) => x + nShow)).slice(0, 3);
+          let v; const set = [];
+          for (let t = 0; t < 40; t++) set.push(near());
+          const pool = set.filter((x) => !inSeq(x)); if (a !== d) pool.push(d * int(rng, 3, 14));
+          v = pick(rng, pool);
+          right = v;
+          choices = [R(f(v)), ...js.map((j) => mkIn(term(j)))];
+          nums = [v, ...js.map(term)];
+        }
+        choices = shuffle(rng, choices);
+        const shown = Array.from({ length: nShow }, (_, j) => f(term(j))).join(', ');
+        const nmA = pick(rng, NAMES);
+        const askIn = mode === 'in';
+        const prompt = pick(rng, [
+          `Dãy cộng ${d}: ${shown}, … Số nào ${askIn ? 'THUỘC' : 'KHÔNG thuộc'} dãy này?`,
+          `${nmA} đếm cách ${d}: ${shown}, … Số nào ${askIn ? 'sẽ' : 'KHÔNG bao giờ'} gặp trong dãy này?`,
+        ]);
+        const tvis = Array.from({ length: 8 }, (_, j) => term(j));
+        const explainTarget = askIn ? right : right;
+        return {
+          id: 'g1.7', src: '[biến thể mới]', type: 'choice', layout: 'grid2',
+          prompt,
+          hint: `Dãy bắt đầu từ ${f(a)}, nên hãy đếm tiếp từng bước ${d}.`,
+          choices, meta: { a, d, mode, nums },
+          explain: { steps: [
+            { text: `Đếm tiếp, mỗi lần cộng ${d}: ${tvis.slice(0, 7).map(f).join(', ')}…`, visual: { kind: 'sequence', items: tvis, arrowLabels: arrows(7, '+' + d), anim: 'reveal' } },
+            askIn
+              ? { text: `Có cách nhanh: ${f(right)} − ${f(a)} = ${f(right - a)}, và ${f(right - a)} = ${d} × ${(right - a) / d}. Vậy từ ${f(a)} nhảy đúng ${(right - a) / d} bước thì tới ${f(right)}.` }
+              : { text: `${f(explainTarget)} nằm giữa ${f(a + Math.floor((explainTarget - a) / d) * d)} và ${f(a + Math.floor((explainTarget - a) / d) * d + d)}: ếch nhảy qua mà không đáp xuống.`, mark: 'bad' },
             { text: `Vậy đáp án là ${f(right)}.`, mark: 'good' },
           ] },
         };
       },
-      solve(item) { return f(item.meta.n * item.meta.n); },
+      solve(item) { const { a, d, mode, nums } = item.meta; const inSeq = (x) => x >= a && (x - a) % d === 0; return f(nums.find((x) => inSeq(x) === (mode === 'in'))); },
+    },
+    {
+      // Nối số chính phương với hình chấm xếp vuông
+      id: 'g1.8', covers: ['1.6'],
+      make(rng) {
+        const ns = shuffle(rng, [2, 3, 4, 5, 6, 7]).slice(0, 3).sort((x, y) => x - y);
+        const shapes = shuffle(rng, ['circle', 'square', 'star', 'heart']);
+        const NAME = { circle: 'Chấm hình tròn', square: 'Chấm hình vuông', star: 'Chấm hình sao', heart: 'Chấm hình trái tim' };
+        let rows, cols;
+        do { rows = int(rng, 2, 5); cols = int(rng, 2, 7); } while (rows === cols || Number.isInteger(Math.sqrt(rows * cols)));
+        const left = ns.map((n) => ({ id: 'n' + n * n, text: String(n * n) }));
+        const right = [
+          ...ns.map((n, i) => ({ id: 'r' + n, text: NAME[shapes[i]], visual: { kind: 'dots', pattern: 'square', n, shape: shapes[i] } })),
+          { id: 'rc', text: NAME[shapes[3]], visual: { kind: 'dots', pattern: 'rect', rows, cols, shape: shapes[3] } },
+        ];
+        const pairs = {}; ns.forEach((n) => { pairs['n' + n * n] = 'r' + n; });
+        const obj = pick(rng, ['viên bi', 'hạt cườm', 'quân cờ', 'chiếc cúc áo', 'viên gạch', 'con tem']);
+        const nmA = pick(rng, NAMES);
+        return {
+          id: 'g1.8', src: '[biến thể mới]', type: 'match',
+          prompt: pick(rng, [
+            `${nmA} có các số ${left.map((l) => l.text).join(', ')}. Nối mỗi số với hình chấm xếp thành hình vuông của số đó. Có một hình thừa.`,
+            `${nmA} xếp ${obj} thành các hình chấm. Nối mỗi số ${left.map((l) => l.text).join(', ')} với hình xếp vuông có đúng số chấm đó. Có một hình thừa.`,
+            `Nối mỗi số ${left.map((l) => l.text).join(', ')} với hình chấm xếp thành hình vuông của số đó (hình của ${nmA}). Có một hình thừa.`,
+          ]),
+          hint: 'Đếm số hàng và số cột, hai số bằng nhau thì xếp được hình vuông.',
+          left, right, pairs, meta: { ns },
+          explain: { steps: [
+            { text: `Đếm số hàng và số cột. Xếp được hình vuông khi số hàng bằng số cột: ${ns.map((n) => `${n} × ${n} = ${n * n}`).join(', ')}.`, visual: { kind: 'dots', pattern: 'seq', ns, colorBy: 'layer', anim: 'grow' } },
+            { text: `Hình có ${rows} hàng, ${cols} cột không phải hình vuông (${rows} × ${cols} = ${rows * cols}), nên hình này bị thừa.`, mark: 'bad', visual: { kind: 'dots', pattern: 'rect', rows, cols, shape: shapes[3] } },
+            { text: `Vậy ${ns.map((n) => `${n * n} nối với hình ${n} × ${n}`).join(', ')}.`, mark: 'good' },
+          ] },
+        };
+      },
+      solve(item) { const o = {}; item.meta.ns.forEach((n) => { o['n' + n * n] = 'r' + n; }); return o; },
     },
   ],
 };

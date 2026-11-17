@@ -1,5 +1,6 @@
 // CĐ5 · Làm tròn số (đến hàng chục, trăm, nghìn, chục nghìn, trăm nghìn)
 import { pick, int, shuffle, seeded } from '../core/rng.js';
+import { estimateSteps } from '../core/paper.js';
 
 /* ---------- tiện ích dùng riêng trong file ---------- */
 const fmt = (n) => {
@@ -248,16 +249,42 @@ const variant = {
 };
 
 /* ---------- bộ sinh ---------- */
+const NAMES = ['Bo', 'Mai', 'Nam', 'Lan', 'Hùng', 'Chi', 'Minh', 'An', 'Hoa', 'Tú', 'Linh', 'Khoa', 'Vy', 'Phúc'];
+// câu dẫn có ngữ cảnh thật (đôi khi bỏ trống để đề thuần số)
+const SCENES = [
+  (n) => `Một nhà sách bán được ${fmt(n)} quyển vở.`,
+  (n) => `Công viên đón ${fmt(n)} lượt khách trong năm.`,
+  (n) => `Trong kho có ${fmt(n)} viên gạch.`,
+  (n) => `Trang trại thu được ${fmt(n)} quả trứng.`,
+  (n) => `Thư viện trường có ${fmt(n)} cuốn sách.`,
+  (n) => `Nhà máy làm ra ${fmt(n)} chiếc áo.`,
+  (n) => `Cánh rừng có ${fmt(n)} cây.`,
+  (n) => `Bác nông dân thu được ${fmt(n)} kg lúa.`,
+  (n) => `Sân vận động có ${fmt(n)} chỗ ngồi.`,
+];
+const lead = (rng, n) => (rng.next() < 0.5 ? pick(rng, SCENES)(n) + ' ' : '');
+const digitAt = (n, k) => Math.floor(n / 10 ** k) % 10;
+// chọn k đáp án nhiễu từ pool {v,...}: số đáp án nhỏ hơn đáp án đúng được rút ngẫu nhiên (đáp án đúng không luôn nhỏ nhất/lớn nhất/giữa)
+function pickBalanced(rng, right, pool, k = 3) {
+  const lo = pool.filter((w) => w.v < right), hi = pool.filter((w) => w.v > right);
+  const feas = []; for (let b = 0; b <= k; b++) if (b <= lo.length && k - b <= hi.length) feas.push(b);
+  if (!feas.length) return pool.slice(0, k);
+  const b = pick(rng, feas);
+  return shuffle(rng, [...lo.slice(0, b), ...hi.slice(0, k - b)]);
+}
+const rulePhrase = (d) => (d >= 5 ? 'từ 5 trở lên nên lên' : 'từ 4 trở xuống nên giữ');
+const pairStr = (obj) => Object.keys(obj).sort().map((k) => `${k}:${obj[k]}`).join(',');
+
 const generators = [
   {
-    id: 'g5.1',
+    id: 'g5.1', covers: ['5.3', '5.6'], // chọn kết quả làm tròn
     make(rng) {
       const { n, L } = genRound(rng);
       const right = rnd(n, L);
-      const wr = roundWrongs(n, L).slice(0, 3);
+      const wr = pickBalanced(rng, right, roundWrongs(n, L));
       return {
         id: 'g5.1', src: '[biến thể mới]', type: 'choice',
-        prompt: `Làm tròn ${fmt(n)} đến hàng ${HN[L]}. Kết quả là:`,
+        prompt: `${lead(rng, n)}Làm tròn ${fmt(n)} đến hàng ${HN[L]}. Kết quả là:`,
         visual: placeV(n, [L - 1]),
         choices: buildChoices(rng, fmt(right), wr.map((w) => ({ text: fmt(w.v), code: w.code, why: w.why }))),
         hint: `Hàng ${HN[L]} là chữ số nào? Hãy nhìn chữ số ngay bên phải nó.`,
@@ -268,14 +295,14 @@ const generators = [
     solve(item) { const { n, L } = item.meta; const p = 10 ** L; return fmt(Math.round(n / p) * p); },
   },
   {
-    id: 'g5.2',
+    id: 'g5.2', covers: ['5.4'], // bấm kết quả làm tròn
     make(rng) {
       const { n, L } = genRound(rng);
       const right = rnd(n, L);
       const wr = roundWrongs(n, L).slice(0, 2);
       return {
         id: 'g5.2', src: '[biến thể mới]', type: 'numpad',
-        prompt: `Làm tròn ${fmt(n)} đến hàng ${HN[L]}. Bấm kết quả.`,
+        prompt: `${lead(rng, n)}Làm tròn ${fmt(n)} đến hàng ${HN[L]}. Bấm kết quả.`,
         visual: placeV(n, [L - 1]),
         slots: [{ answer: String(right), len: String(right).length }],
         wrongHints: wr.map((w) => ({ match: String(w.v), code: w.code, why: w.why })),
@@ -287,27 +314,31 @@ const generators = [
     solve(item) { const { n, L } = item.meta; const p = 10 ** L; return String(Math.round(n / p) * p); },
   },
   {
-    id: 'g5.3',
+    id: 'g5.3', covers: ['5.5'], // Đúng/Sai: bạn làm tròn, nêu lý do
     make(rng) {
       const { n, L } = genRound(rng);
       const right = rnd(n, L);
-      const wr = roundWrongs(n, L);
+      const wr = roundWrongs(n, L).slice(0, 3);
       const truth = rng.next() < 0.5;
-      const m = truth ? right : wr[0].v;
-      const who = pick(rng, ['Bo', 'Mai', 'Nam', 'Lan', 'Hùng', 'Chi']);
-      const d = red(n, L);
+      const m = truth ? right : pick(rng, wr).v;
+      const who = pick(rng, NAMES);
+      const d = red(n, L), dHere = digitAt(n, L);
+      const claim = `${fmt(n)} làm tròn đến hàng ${HN[L]} là ${fmt(m)}.`;
+      const reasons = [
+        { text: `Chữ số hàng ${HN[L - 1]} là ${d}, ${rulePhrase(d)}: kết quả là ${fmt(right)}.`, correct: true },
+        { text: `Nhìn chữ số hàng ${HN[L]} (là ${dHere}) để biết lên hay xuống.`, correct: false, code: 'HÀNG', why: `Chữ số hàng ${HN[L]} là chữ số được làm tròn. Chữ số cần xét là chữ số ngay bên phải nó: hàng ${HN[L - 1]}, bằng ${d}.` },
+        L >= 2
+          ? { text: `Nhìn chữ số tận cùng ${n % 10} của số đó.`, correct: false, code: 'HÀNG', why: `Chữ số tận cùng chỉ quyết định khi làm tròn đến hàng chục. Đến hàng ${HN[L]} thì nhìn chữ số hàng ${HN[L - 1]}, bằng ${d}.` }
+          : { text: `Làm tròn lần lượt từng hàng, được ${fmt(succ(n, L))}.`, correct: false, code: 'NỐI-TIẾP', why: 'Chỉ nhìn MỘT chữ số: chữ số ngay bên phải hàng cần tròn.' },
+      ];
       return {
         id: 'g5.3', src: '[biến thể mới]', type: 'tf',
-        prompt: `${who} làm tròn số như trong hình. ${who} nói đúng hay sai?`,
-        say: `${who} nói: làm tròn ${n} đến hàng ${HN[L]} được ${m}. ${who} nói đúng hay sai?`,
-        visual: { kind: 'bubble', who, emoji: '🧒', text: `${fmt(n)} làm tròn đến hàng ${HN[L]} là ${fmt(m)}.` },
+        prompt: `${who} nói: ${claim} ${who} nói đúng hay sai?`,
+        visual: { kind: 'bubble', who, emoji: '🧒', text: claim },
         answer: truth,
-        reasons: shuffle(rng, [
-          { text: `Chỉ nhìn chữ số ngay bên phải hàng ${HN[L]} (là ${d}): từ 5 lên, từ 4 xuống.`, correct: true },
-          { text: 'Nhìn tất cả chữ số bên phải, làm tròn từng hàng một.', correct: false, code: 'NỐI-TIẾP', why: 'Làm tròn từng hàng một có thể ra kết quả sai. Chỉ nhìn MỘT chữ số: chữ số ngay bên phải hàng cần tròn.' },
-          { text: 'Chữ số cuối cùng của số quyết định lên hay xuống.', correct: false, code: 'HÀNG', why: `Chữ số cuối chỉ quyết định khi làm tròn đến hàng chục. Với hàng ${HN[L]}, mình nhìn chữ số ${d} ngay bên phải hàng ${HN[L]}.` },
-        ]),
+        reasons: shuffle(rng, reasons),
         whyWrong: `Con thử lại nhé: chữ số cần xét là ${d}, nên ${fmt(n)} làm tròn đến hàng ${HN[L]} là ${fmt(right)}.`,
+        hint: `Làm tròn đến hàng ${HN[L]} thì phải nhìn chữ số ở hàng nào?`,
         explain: { steps: roundSteps(n, L).slice(0, -1).concat([{ text: truth ? `${fmt(n)} làm tròn là ${fmt(right)}, đúng như ${who} nói. Vậy ${who} nói ĐÚNG.` : `${fmt(n)} làm tròn là ${fmt(right)}, không phải ${fmt(m)}. Vậy ${who} nói SAI.`, mark: 'good' }]) },
         meta: { n, L, m },
       };
@@ -315,23 +346,25 @@ const generators = [
     solve(item) { const { n, L, m } = item.meta; const p = 10 ** L; return String(Math.round(n / p) * p === m); },
   },
   {
-    id: 'g5.4',
+    id: 'g5.4', covers: ['5.1'], // phân loại lên / xuống
     make(rng) {
-      const L = int(rng, 1, 2);
-      const p = 10 ** L;
+      const L = int(rng, 1, 3);
+      const p = 10 ** L, half = p / 2;
       const lo = p * int(rng, 10, 99);
-      const offs = new Set();
       const lowSide = [], highSide = [];
       for (let o = 1; o < p; o++) (o * 2 >= p ? highSide : lowSide).push(o);
-      while (offs.size < 2) offs.add(pick(rng, lowSide));
-      while (offs.size < 4) offs.add(pick(rng, highSide));
-      const nums = shuffle(rng, [...offs].map((o) => lo + o));
+      const lows = new Set(), highs = new Set();
+      if (rng.next() < 0.5) { lows.add(half - 1); highs.add(half); } // hai số sát điểm giữa
+      while (lows.size < 2) lows.add(pick(rng, lowSide));
+      while (highs.size < 2) highs.add(pick(rng, highSide));
+      const nums = shuffle(rng, [...lows, ...highs].map((o) => lo + o));
       const chips = nums.map((v) => ({ id: 'c' + v, text: fmt(v) }));
       const answer = {};
       for (const v of nums) answer['c' + v] = rnd(v, L) === lo ? 'xuong' : 'len';
+      const who = pick(rng, NAMES);
       return {
         id: 'g5.4', src: '[biến thể mới]', type: 'classify',
-        prompt: `Làm tròn đến hàng ${HN[L]}. Chạm một số, rồi chạm ô: số đó làm tròn thành ${fmt(lo)} hay ${fmt(lo + p)}?`,
+        prompt: `${rng.next() < 0.5 ? `${who} làm tròn đến hàng ${HN[L]}. ` : `Làm tròn đến hàng ${HN[L]}. `}Chạm một số, rồi chạm ô: số đó làm tròn thành ${fmt(lo)} hay ${fmt(lo + p)}?`,
         chips,
         buckets: [{ id: 'xuong', text: `${fmt(lo)} (xuống)` }, { id: 'len', text: `${fmt(lo + p)} (lên)` }],
         answer,
@@ -351,6 +384,109 @@ const generators = [
       return nums.map((v) => 'c' + v).sort().map((id) => `${id}:${Math.round(Number(id.slice(1)) / p) * p === lo ? 'xuong' : 'len'}`).join(',');
     },
   },
+  {
+    id: 'g5.5', covers: ['5.2'], // nối: một số làm tròn đến nhiều hàng
+    make(rng) {
+      let N, Ls, vals;
+      for (let tries = 0; tries < 60; tries++) {
+        const digits = int(rng, 5, 6);
+        N = int(rng, 10 ** (digits - 1) + 1, 10 ** digits - 1);
+        const levels = digits === 5 ? [1, 2, 3, 4] : [1, 2, 3, 4, 5];
+        Ls = shuffle(rng, levels).slice(0, 4).sort((x, y) => x - y);
+        vals = Ls.map((L) => rnd(N, L));
+        if (new Set(vals).size === 4 && N % 10 !== 0) break;
+      }
+      // nhiễu: kết quả của cách làm "nối tiếp" hoặc làm tròn lệch hướng
+      const bad = [];
+      for (const L of Ls) { const s = succ(N, L); if (!vals.includes(s)) bad.push(s); }
+      for (const L of shuffle(rng, Ls)) { const p = 10 ** L, r = rnd(N, L); bad.push(r + p, r - p); }
+      const extra = []; for (const v of bad) if (v > 0 && !vals.includes(v) && !extra.includes(v)) extra.push(v);
+      const wrongs = extra.slice(0, 2);
+      const rightItems = shuffle(rng, [...vals.map((v) => ({ v, ok: true })), ...wrongs.map((v) => ({ v, ok: false }))]).map((r, i) => ({ id: 'r' + (i + 1), text: fmt(r.v), v: r.v, ok: r.ok }));
+      const left = Ls.map((L) => ({ id: 'h' + L, text: `Đến hàng ${HN[L]}` }));
+      const pairs = {}; Ls.forEach((L, i) => { pairs['h' + L] = rightItems.find((r) => r.v === vals[i]).id; });
+      const who = pick(rng, NAMES);
+      const firstSucc = Ls.find((L) => succ(N, L) !== rnd(N, L));
+      const steps = Ls.map((L, i) => {
+        const d = red(N, L);
+        let text = `Hàng ${HN[L]}: chữ số cần xét là ${d} (hàng ${HN[L - 1]}), ${rulePhrase(d)}: ${fmt(vals[i])}.`;
+        if (L === firstSucc) text += ` Không làm tròn tiếp từ ${fmt(rnd(N, L - 1))} nhé, sẽ ra ${fmt(succ(N, L))}.`;
+        const st = { text, visual: placeV(N, [L - 1]) };
+        if (i === Ls.length - 1) { st.text += ` Vậy các kết quả là ${vals.map(fmt).join(', ')}.`; st.mark = 'good'; } else if (L === firstSucc) st.mark = 'bad';
+        return st;
+      });
+      return {
+        id: 'g5.5', src: '[biến thể mới]', type: 'match',
+        prompt: `${who} viết số ${fmt(N)}. Làm tròn số này đến từng hàng, rồi nối mỗi hàng với kết quả đúng.`,
+        visual: placeV(N, []),
+        left, right: rightItems.map((r) => ({ id: r.id, text: r.text })), pairs,
+        hint: 'Mỗi hàng chỉ nhìn MỘT chữ số: chữ số ngay bên phải hàng đó.',
+        explain: { steps },
+        meta: { N, Ls },
+      };
+    },
+    solve(item) {
+      const { N } = item.meta; const out = {};
+      for (const l of item.left) {
+        const L = Number(l.id.slice(1)), p = 10 ** L, want = fmt(Math.round(N / p) * p);
+        out[l.id] = item.right.find((r) => r.text === want).id;
+      }
+      return pairStr(out);
+    },
+  },
+  {
+    id: 'g5.6', covers: ['5.7'], // hai số sát điểm giữa (biên)
+    make(rng) {
+      const L = int(rng, 1, 4), p = 10 ** L, half = p / 2;
+      const lo = p * int(rng, 3, 95), hi = lo + p;
+      const form = pick(rng, ['edge', 'edge', 'up', 'down']);
+      let a, b;
+      if (form === 'edge') { a = lo + half - 1; b = lo + half; }
+      else if (form === 'up') { a = lo + half + int(rng, 0, half - 1); do { b = lo + half + int(rng, 0, half - 1); } while (b === a); }
+      else { a = lo + int(rng, 1, half - 1); do { b = lo + int(rng, 1, half - 1); } while (b === a); }
+      if (rng.next() < 0.5) [a, b] = [b, a];
+      const ra = rnd(a, L), rb = rnd(b, L);
+      const whyNum = (x) => `${fmt(x)}: chữ số cần xét là ${red(x, L)}, ${rulePhrase(red(x, L))}, được ${fmt(rnd(x, L))}.`;
+      const hiNum = rnd(a, L) === hi ? a : b, loNum = hiNum === a ? b : a;
+      let right, wrongs;
+      if (form === 'edge') {
+        right = `${fmt(ra)} và ${fmt(rb)}`;
+        wrongs = [
+          { text: `Cùng là ${fmt(lo)}`, code: 'QUY', why: whyNum(hiNum) },
+          { text: `Cùng là ${fmt(hi)}`, code: 'QUY', why: whyNum(loNum) },
+          { text: `${fmt(rb)} và ${fmt(ra)}`, code: 'ĐỌC', why: `Có thể con đã đọc ngược thứ tự. Số đầu là ${fmt(a)}, số sau là ${fmt(b)}.` },
+        ];
+      } else {
+        const same = form === 'up' ? hi : lo, other = form === 'up' ? lo : hi;
+        right = `Cùng là ${fmt(same)}`;
+        const bothWhy = `Hai số ${fmt(a)} và ${fmt(b)} đều có chữ số cần xét là ${red(a, L)} và ${red(b, L)}, ${form === 'up' ? 'từ 5 trở lên nên đều lên' : 'từ 4 trở xuống nên đều giữ'}: cùng là ${fmt(same)}.`;
+        wrongs = [
+          { text: `Cùng là ${fmt(other)}`, code: 'QUY', why: whyNum(a) },
+          { text: `${fmt(lo)} và ${fmt(hi)}`, code: 'QUY', why: bothWhy },
+          { text: `${fmt(hi)} và ${fmt(lo)}`, code: 'QUY', why: bothWhy },
+        ];
+      }
+      return {
+        id: 'g5.6', src: '[biến thể mới]', type: 'choice',
+        prompt: `Làm tròn đến hàng ${HN[L]} lần lượt hai số ${fmt(a)} và ${fmt(b)}. Kết quả của hai số là:`,
+        choices: buildChoices(rng, right, wrongs),
+        hint: 'Với mỗi số, nhìn chữ số ngay bên phải hàng cần tròn.',
+        explain: {
+          steps: [
+            { text: `Đến hàng ${HN[L]} thì nhìn chữ số hàng ${HN[L - 1]} (chữ số cần xét).`, visual: placeV(a, [L - 1]) },
+            { text: `${whyNum(a)} ${whyNum(b)}`, visual: { kind: 'numberline', min: lo, max: hi, step: p / 10, labelEvery: half, points: [{ at: a, label: fmt(a), color: DOWN }, { at: b, label: fmt(b), color: UP }] } },
+            { text: ra === rb ? `Hai số khác nhau nhưng kết quả giống nhau. Vậy đáp án là "${right}".` : `Hai số chỉ hơn kém nhau 1 mà kết quả khác nhau. Vậy đáp án là "${right}".`, mark: 'good' },
+          ],
+        },
+        meta: { L, a, b },
+      };
+    },
+    solve(item) {
+      const { L, a, b } = item.meta; const p = 10 ** L;
+      const x = Math.round(a / p) * p, y = Math.round(b / p) * p;
+      return x === y ? `Cùng là ${fmt(x)}` : `${fmt(x)} và ${fmt(y)}`;
+    },
+  },
 ];
 
 export default {
@@ -360,6 +496,7 @@ export default {
     { text: 'Làm tròn đến hàng nào thì chỉ nhìn chữ số NGAY BÊN PHẢI hàng đó. Mình gọi nó là chữ số cần xét và tô màu nó trong bảng hàng. Ví dụ: làm tròn 7 349 đến hàng trăm thì nhìn chữ số hàng chục.', visual: placeV(7349, [1]) },
     { text: 'Chữ số cần xét từ 5 đến 9 thì làm tròn LÊN. Chữ số cần xét từ 0 đến 4 thì giữ nguyên hàng đó, tức là làm tròn xuống. Các chữ số bên phải đều thành 0.', visual: nlRound(237, 1) },
     { text: 'Chỉ nhìn MỘT chữ số thôi. 7 349 đến hàng trăm là 7 300, không phải 7 400.', visual: { kind: 'sequence', items: ['7 349', '7 300'], arrowLabels: ['chữ số 4: giữ'], highlight: [1] } },
+    { text: 'Cách làm nháp: con làm tròn từng số trước, rồi mới cộng, trừ hay nhân các số đã tròn. Kết quả tính đúng phải gần số ước lượng.', visual: estimateSteps('+', 387, 214).slice(-1)[0].visual },
   ],
   lesson: [
     { text: 'Làm tròn là đổi một số thành số tròn gần nó nhất. Ếch đứng ở 234, số tròn chục nào gần nhất: 230 hay 240?', visual: { kind: 'numberline', min: 230, max: 240, step: 1, labelEvery: 5, points: [{ at: 234, label: '234', color: PINK }], marker: { at: 234, emoji: '🐸' } } },
@@ -368,6 +505,9 @@ export default {
     { text: 'Mẹo nhanh: chỉ nhìn chữ số ngay bên phải hàng cần tròn (chữ số cần xét). 0, 1, 2, 3, 4 thì giữ. 5, 6, 7, 8, 9 thì lên.', visual: { kind: 'table', headers: ['Chữ số cần xét', 'Làm gì?'], rows: [['0  1  2  3  4', 'Giữ nguyên (xuống)'], ['5  6  7  8  9', 'Làm tròn LÊN']] } },
     { text: 'Làm tròn 7 349 đến hàng trăm: chữ số cần xét là 4 (hàng chục). 4 thì giữ, hai chữ số cuối thành 0: 7 300.', visual: nlRound(7349, 2) },
     { text: 'Chỉ nhìn một chữ số thôi nhé! Chữ số 9 ở hàng đơn vị không cần xét. Hàng nghìn, hàng chục nghìn, hàng trăm nghìn cũng làm giống như vậy.', mark: 'bad', visual: { kind: 'sequence', items: ['7 349', '7 350', '7 400'], arrowLabels: ['sai', 'sai'], highlight: [2] } },
+    // dùng làm tròn để ước lượng (viết nháp từng bước)
+    { text: 'Làm tròn còn giúp con ước lượng. Ví dụ 387 + 214: con làm tròn từng số đến hàng trăm trước.', visual: estimateSteps('+', 387, 214)[0].visual },
+    ...estimateSteps('+', 387, 214).slice(1).map((st) => Object.assign({}, st)),
   ],
   items,
   variant,

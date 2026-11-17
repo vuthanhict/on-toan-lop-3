@@ -2,14 +2,15 @@
 // Chạy: node site/tests/test-gen.mjs [soSeed=500]
 import { seeded } from '../js/core/rng.js';
 import { toSpoken } from '../js/core/speech.js';
+import { mergeColumnGens } from '../js/topics/column-gens.js';
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const dir = path.dirname(fileURLToPath(import.meta.url));
 const SEEDS = Number(process.argv[2] || 500);
-const KINDS = new Set('numberline sequence thermo place blocks3d dots array groups fracwall fracshape fracset measure angle shape2d grid clock timeline calendar venn grid100 balance table factorpairs bubble emoji'.split(' '));
-const TYPES = new Set(['choice', 'multi', 'tf', 'numpad', 'order', 'match', 'classify']);
+const KINDS = new Set('numberline sequence thermo place blocks3d dots array groups fracwall fracshape fracset measure angle shape2d grid clock timeline calendar venn grid100 balance table factorpairs bubble emoji vcalc vdiv workout'.split(' '));
+const TYPES = new Set(['choice', 'multi', 'tf', 'numpad', 'order', 'match', 'classify', 'column']);
 const errs = []; let nItems = 0, nGen = 0;
 const err = (m) => { if (errs.length < 80) errs.push(m); else if (errs.length === 80) errs.push('… (còn nhiều lỗi nữa)'); };
 
@@ -41,6 +42,27 @@ function checkItem(it, where) {
   }
   if (it.type === 'tf') { if (typeof it.answer !== 'boolean') err(`${where}: tf thiếu answer boolean`); if (it.reasons && it.reasons.filter((r) => r.correct).length !== 1) err(`${where}: tf cần đúng 1 lý do đúng`); }
   if (it.type === 'numpad') { if (!it.slots || !it.slots.length) err(`${where}: numpad thiếu slots`); else it.slots.forEach((s, i) => { if (s.answer == null || s.answer === '') err(`${where}: slot ${i} thiếu answer`); }); }
+  if (it.type === 'column') {
+    const OPS = ['+', '−', '×', '÷'];
+    if (!OPS.includes(it.op)) err(`${where}: column op lạ "${it.op}"`);
+    else if (!Number.isInteger(it.a) || !Number.isInteger(it.b) || it.a < 0 || it.b < 0) err(`${where}: column a/b không phải số tự nhiên`);
+    else {
+      if (!/^\d+$/.test(String(it.answer))) err(`${where}: column answer phải là chuỗi chữ số: ${it.answer}`);
+      else if (it.op === '÷') {
+        if (it.b < 2 || it.b > 9) err(`${where}: column ÷ số chia phải 2..9`);
+        const rem = it.rem == null ? 0 : Number(it.rem);
+        if (it.rem != null && !/^\d+$/.test(String(it.rem))) err(`${where}: column rem phải là chuỗi chữ số`);
+        if (rem >= it.b) err(`${where}: column số dư ${rem} ≥ số chia ${it.b}`);
+        if (Number(it.answer) * it.b + rem !== it.a) err(`${where}: column ÷ sai: ${it.a} ÷ ${it.b} ≠ ${it.answer} dư ${rem}`);
+      } else {
+        const want = it.op === '+' ? it.a + it.b : it.op === '−' ? it.a - it.b : it.a * it.b;
+        if (String(want) !== String(it.answer)) err(`${where}: column ${it.a} ${it.op} ${it.b} = ${want} ≠ answer ${it.answer}`);
+        if (it.op === '−' && it.a < it.b) err(`${where}: column trừ cần a ≥ b`);
+        if (it.op === '×' && it.b > 9) err(`${where}: column × số nhân phải 1 chữ số`);
+        if (String(it.answer).length > 4 && it.op !== '×') err(`${where}: column kết quả quá lớn`);
+      }
+    }
+  }
   if (it.type === 'order') { const ids = (it.items || []).map((x) => x.id); if (!it.answer || it.answer.length !== ids.length || it.answer.some((a) => !ids.includes(a))) err(`${where}: order answer không khớp items`); }
   if (it.type === 'match') { for (const l of it.left || []) { if (!(l.id in (it.pairs || {}))) err(`${where}: match thiếu pairs cho ${l.id}`); else if (!(it.right || []).some((r) => r.id === it.pairs[l.id])) err(`${where}: pairs trỏ tới right không tồn tại`); } }
   if (it.type === 'classify') { for (const c of it.chips || []) { if (!(c.id in (it.answer || {}))) err(`${where}: classify thiếu answer cho ${c.id}`); else if (!(it.buckets || []).some((b) => b.id === it.answer[c.id])) err(`${where}: classify answer sai bucket`); } }
@@ -52,6 +74,7 @@ function answerOf(it) {
   if (it.type === 'multi') return it.choices.filter((c) => c.correct).map((c) => c.text).sort().join(',');
   if (it.type === 'tf') return String(it.answer);
   if (it.type === 'numpad') return it.slots.map((s) => s.answer).join('|');
+  if (it.type === 'column') return it.answer + (it.rem != null ? '|' + it.rem : '');
   if (it.type === 'order') return it.answer.join(',');
   return canon(it.pairs || it.answer);
 }
@@ -64,6 +87,7 @@ const ids = new Set();
 for (const f of files) {
   let t;
   try { t = (await import('../js/topics/' + f)).default; } catch (e) { err(`${f}: không nạp được: ${e.message}`); continue; }
+  mergeColumnGens([t]);
   const W = f;
   if (!t.id || !t.title) err(`${W}: thiếu id/title`);
   if ((t.remember || []).length < 2) err(`${W}: remember < 2`);

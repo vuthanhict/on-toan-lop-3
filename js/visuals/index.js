@@ -1,5 +1,5 @@
 // Registry hình minh hoạ: nạp mọi tệp trong visuals/, bỏ qua tệp thiếu/lỗi
-const FILES = ['numberline', 'thermo', 'place', 'dots', 'groups', 'fraction', 'measure', 'geometry', 'time', 'misc'];
+const FILES = ['numberline', 'thermo', 'place', 'dots', 'groups', 'fraction', 'measure', 'geometry', 'time', 'misc', 'paper'];
 const kinds = new Map();
 let loaded = null;
 let uidN = 0;

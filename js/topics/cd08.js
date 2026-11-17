@@ -1,5 +1,6 @@
 // CĐ8 · Nhân với số có 1 chữ số, bài toán có lời văn (Ước lượng → Phép tính → Kết luận)
 import { pick, int, shuffle, seeded } from '../core/rng.js';
+import { vcalcSteps, vcalcMicro, vdivSteps, partialMulSteps, estimateSteps } from '../core/paper.js';
 
 /* ---------- tiện ích dùng riêng trong file ---------- */
 const fmt = (n) => {
@@ -20,6 +21,20 @@ function distinct(pool, rightText, n) {
   const out = [];
   for (const w of pool) { if (seen.has(w.text)) continue; seen.add(w.text); out.push(w); if (out.length === n) break; }
   return out;
+}
+
+const NAMES = ['Mai', 'Nam', 'Lan', 'Hùng', 'Bo', 'Minh', 'An', 'Hoa', 'Tú', 'Linh', 'Khoa', 'Vy', 'Phúc', 'Chi'];
+const pairStr = (obj) => Object.keys(obj).sort().map((k) => `${k}:${obj[k]}`).join(',');
+// chọn k đáp án nhiễu từ pool {v,...} (v là giá trị số): số đáp án nhỏ hơn đáp án đúng được rút ngẫu nhiên
+// nên đáp án đúng không luôn nhỏ nhất / lớn nhất / ở giữa dãy số.
+function pickBalanced(rng, right, pool, k = 3) {
+  const seen = new Set([right]), uniq = [];
+  for (const w of pool) if (Number.isInteger(w.v) && w.v > 0 && !seen.has(w.v)) { seen.add(w.v); uniq.push(w); }
+  const lo = uniq.filter((w) => w.v < right), hi = uniq.filter((w) => w.v > right);
+  const feas = []; for (let b = 0; b <= k; b++) if (b <= lo.length && k - b <= hi.length) feas.push(b);
+  if (!feas.length) return uniq.slice(0, k);
+  const b = pick(rng, feas);
+  return shuffle(rng, [...lo.slice(0, b), ...hi.slice(0, k - b)]);
 }
 
 /* ----- nhân dọc có nhớ ----- */
@@ -56,17 +71,49 @@ function mulTable(a, b, k) { // k = số hàng đã tính
   const col = 4 - Math.max(0, k - 1);
   return { kind: 'table', headers: ['', 'Nghìn', 'Trăm', 'Chục', 'Đơn vị'], rows: [row0, row1, row2, row3], hide, highlight: k >= 1 && k <= n ? [[1, col], [3, col], [2, 4]] : [] };
 }
-function mulSteps(a, b) {
-  const m = mulCalc(a, b), n = m.n, prod = a * b;
-  const steps = [];
-  for (let i = 0; i < n; i++) {
-    const d = m.ds[i], cin = i ? m.carries[i - 1] : 0, p = m.ps[i];
-    const last = i === n - 1;
-    const tail = last || p < 10 ? `Viết ${p}.` : `Viết ${p % 10}, nhớ ${Math.floor(p / 10)}.`;
-    steps.push({ text: `Hàng ${HN[i]}: ${d} × ${b}${cin ? ` + ${cin} (nhớ)` : ''} = ${p}. ${tail}`, visual: mulTable(a, b, i + 1) });
+// ----- lời giải kiểu vở ô li (hình nháp từ core/paper.js): đặt tính → từng cột (nhớ) → kết luận -----
+// paper.js viết số 4 chữ số liền nhau; trong bài ta viết có dấu cách nghìn như phần còn lại của chủ đề.
+const gp = (t) => (t == null ? t : t.replace(/(?<!\d)(\d)(\d{3})(?!\d)/g, '$1 $2'));
+// rút gọn lời cho đủ ≤ 2 câu: bỏ các câu mà hình đã cho thấy, còn dài thì nối các câu bằng dấu chấm phẩy
+const lc = (x) => (/^[A-ZÀ-Ỵ]/.test(x) ? x[0].toLowerCase() + x.slice(1) : x);
+function concise(t) {
+  if (!t) return t;
+  let ss = t.split(/(?<=\.)\s+/);
+  if (ss.length > 2) ss = ss.filter((x) => !/^(Viết \d+ nhỏ phía trên|Kẻ vạch ngang)/.test(x));
+  if (ss.length > 2) {
+    let best = 1, gap = 1e9;
+    for (let k = 1; k < ss.length; k++) { const d = Math.abs(ss.slice(0, k).join(' ').length - ss.slice(k).join(' ').length); if (d < gap) { gap = d; best = k; } }
+    const join = (arr) => arr.map((x, i) => (i ? lc(x) : x).replace(/\.$/, '')).join('; ') + '.';
+    ss = [join(ss.slice(0, best)), join(ss.slice(best))];
   }
-  steps.push({ text: `Vậy ${fmt(a)} × ${b} = ${fmt(prod)}. Ước lượng ${fmt(est(a))} × ${b} = ${fmt(est(a) * b)} gần số này nên hợp lí.`, mark: 'good', visual: mulTable(a, b, n) });
-  return steps;
+  return ss.join(' ');
+}
+const tidy = (steps) => steps.map((st) => { const o = Object.assign({}, st, { text: gp(concise(st.text)) }); if (st.say) o.say = gp(concise(st.say)); return o; });
+const lastMark = (steps) => steps.map((st, i) => (i === steps.length - 1 ? Object.assign({}, st, { mark: 'good' }) : st));
+const estStep = (a, b) => estimateSteps('×', a, b).find((x) => /^Ước lượng:/.test(x.text));
+const estCompare = (a, b) => { const l = estimateSteps('×', a, b); return l[l.length - 1]; };
+const vcalcDone = (a, b) => ({ kind: 'vcalc', op: '×', a, b, upto: vcalcMicro('×', a, b).length });
+// nhân dọc có nhớ; est: 'end' = so sánh với ước lượng ở cuối
+function mulSteps(a, b, est = 'end') {
+  const st = vcalcSteps('×', a, b, { maxSteps: 5 });
+  if (est === 'end') st.push(estCompare(a, b));
+  return lastMark(tidy(st));
+}
+// bài lời văn: Ước lượng → Phép tính (đặt tính) → Kết luận. prefix: thêm "Bước 1 –"…
+function wordSteps(a, b, concl, prefix) {
+  const e = estStep(a, b), prod = a * b, ea = Math.round(a / (a >= 100 ? 100 : 10)) * (a >= 100 ? 100 : 10);
+  const calc = vcalcSteps('×', a, b, { maxSteps: 5 });
+  const steps = [Object.assign({}, e, { text: (prefix ? 'Bước 1 – ' : '') + e.text })];
+  calc.forEach((c, i) => steps.push(i === 0 && prefix ? Object.assign({}, c, { text: 'Bước 2 – Phép tính. ' + c.text }) : c));
+  steps.push({ text: `${prefix ? 'Bước 3 – ' : ''}Kết luận có đơn vị: ${concl}. Số này gần ${fmt(ea * b)} nên hợp lí.`, mark: 'good', visual: wordTable([['Ước lượng', `${fmt(ea)} × ${b} = ${fmt(ea * b)}`], ['Phép tính', `${fmt(a)} × ${b} = ${fmt(prod)}`], ['Kết luận', concl]]) });
+  return tidy(steps);
+}
+// lập bảng theo hàng (tách – nhân từng phần – cộng); đổi câu cuối để trả lời ô ●
+function tableSteps(a, b, bullet, tot, finalText) {
+  const st = partialMulSteps(a, b);
+  st[st.length - 1] = Object.assign({}, st[st.length - 1], { text: finalText, say: finalText, mark: 'good' });
+  void bullet; void tot;
+  return tidy(st);
 }
 // lập bảng theo hàng
 function splitTable(a, b, hideTens) {
@@ -111,11 +158,7 @@ const items = [
     ],
     hint: 'Ô ở giữa là hàng chục: 30 × 3.',
     explain: {
-      steps: [
-        { text: 'Tách 235 = 200 + 30 + 5, rồi nhân từng phần với 3.', visual: { kind: 'place', digits: '235', showValue: true, highlight: [0, 1, 2], anim: 'fill' } },
-        { text: '200 × 3 = 600; 30 × 3 = 90; 5 × 3 = 15. Vậy ● = 90.', visual: splitTable(235, 3, false) },
-        { text: 'Cộng lại: 600 + 90 + 15 = 705. Vậy đáp án là ● = 90 và tổng = 705.', mark: 'good', visual: wordTable([['Trăm', '200 × 3 = 600'], ['Chục', '30 × 3 = 90'], ['Đơn vị', '5 × 3 = 15'], ['Cộng', '600 + 90 + 15 = 705']]) },
-      ],
+      steps: tableSteps(235, 3, 90, 705, 'Ô ● là 90, tổng là 705. Vậy đáp án là ● = 90 và tổng = 705.'),
     },
     tags: ['nhân', 'lập bảng'],
   },
@@ -168,11 +211,7 @@ const items = [
     ],
     hint: 'Bước nào giúp kiểm tra kết quả sau cùng?',
     explain: {
-      steps: [
-        { text: 'Bước 1 – Ước lượng: làm tròn 368 thành 400, rồi 400 × 7 = 2 800.', visual: wordTable([['Ước lượng', '400 × 7 = 2 800'], ['Phép tính', '…'], ['Kết luận', '…']]) },
-        { text: 'Bước 2 – Phép tính: mỗi ngày bằng nhau nên NHÂN. 368 × 7 = 2 576.', visual: mulTable(368, 7, 3) },
-        { text: 'Bước 3 – Kết luận có đơn vị: 7 ngày thu 2 576 kg cà chua. Số này gần 2 800 nên hợp lí.', mark: 'good', visual: wordTable([['Ước lượng', '400 × 7 = 2 800'], ['Phép tính', '368 × 7 = 2 576'], ['Kết luận', '7 ngày thu 2 576 kg cà chua']]) },
-      ],
+      steps: wordSteps(368, 7, '7 ngày thu 2 576 kg cà chua', true),
     },
     tags: ['lời văn', 'ước lượng – tính – kết luận'],
   },
@@ -189,7 +228,7 @@ const items = [
     explain: {
       steps: [
         { text: 'Mỗi ngày thu 368 kg, thu 7 ngày: dùng phép nhân 368 × 7.', visual: wordTable([['Mỗi ngày', 'thu 368 kg cà chua'], ['7 ngày', '368 × 7 = ?']]) },
-        { text: '368 × 7 = 2 576. Ước lượng 400 × 7 = 2 800 gần số này.', visual: mulTable(368, 7, 3) },
+        ...tidy(vcalcSteps('×', 368, 7, { maxSteps: 5 })),
         { text: 'Kết luận phải có đơn vị: 7 ngày thu 2 576 kg. Vậy đáp án là "7 ngày thu 2 576 kg".', mark: 'good' },
       ],
     },
@@ -211,8 +250,8 @@ const variant = {
   explain: {
     steps: [
       { text: 'Máy nhân 7 ra 924. Muốn tìm số ban đầu, mình đi ngược lại: chia 924 cho 7.', visual: { kind: 'sequence', items: ['?', '924'], arrowLabels: ['× 7'] } },
-      { text: '924 ÷ 7 = 132.', visual: { kind: 'sequence', items: ['924', '132'], arrowLabels: ['÷ 7'], highlight: [1] } },
-      { text: 'Thử lại: 132 × 7 = 924. Vậy đáp án là 132.', mark: 'good' },
+      ...tidy(vdivSteps(924, 7, { maxSteps: 4 })),
+      { text: 'Số đã cho vào máy là 132. Vậy đáp án là 132.', mark: 'good' },
     ],
   },
   tags: ['phép ngược', 'biến thể'],
@@ -230,33 +269,44 @@ function genMul(rng, digits3 = true) {
   return { a: 614, b: 8 };
 }
 
+// ngữ cảnh lời văn "mỗi nhóm có a, b nhóm": pre(b) = phần đầu câu kết luận, unit = đơn vị, noun = vật được đếm
+const mkCtx = (q, pre, unit, noun = '') => ({ q, pre, unit, noun, concl: (b, p) => `${pre(b)} ${fmt(p)} ${unit}${noun ? ' ' + noun : ''}` });
 const CONTEXTS = [
-  { q: (a, b) => `Một nông trại mỗi ngày thu ${fmt(a)} kg cà chua. Hỏi ${b} ngày thu được bao nhiêu kg cà chua?`, unit: 'kg', concl: (b, p) => `${b} ngày thu ${fmt(p)} kg cà chua` },
-  { q: (a, b) => `Mỗi thùng có ${fmt(a)} quả cam. Hỏi ${b} thùng như vậy có bao nhiêu quả cam?`, unit: 'quả', concl: (b, p) => `${b} thùng có ${fmt(p)} quả cam` },
-  { q: (a, b) => `Mỗi giá sách có ${fmt(a)} cuốn sách. Hỏi ${b} giá sách như vậy có bao nhiêu cuốn sách?`, unit: 'cuốn', concl: (b, p) => `${b} giá sách có ${fmt(p)} cuốn sách` },
-  { q: (a, b) => `Mỗi chuyến xe chở ${fmt(a)} kg gạo. Hỏi ${b} chuyến xe chở được bao nhiêu kg gạo?`, unit: 'kg', concl: (b, p) => `${b} chuyến xe chở ${fmt(p)} kg gạo` },
-  { q: (a, b) => `Mỗi lớp trồng ${fmt(a)} cây. Hỏi ${b} lớp như vậy trồng được bao nhiêu cây?`, unit: 'cây', concl: (b, p) => `${b} lớp trồng ${fmt(p)} cây` },
+  mkCtx((a, b) => `Một nông trại mỗi ngày thu ${fmt(a)} kg cà chua. Hỏi ${b} ngày thu được bao nhiêu kg cà chua?`, (b) => `${b} ngày thu`, 'kg', 'cà chua'),
+  mkCtx((a, b) => `Mỗi thùng có ${fmt(a)} quả cam. Hỏi ${b} thùng như vậy có bao nhiêu quả cam?`, (b) => `${b} thùng có`, 'quả', 'cam'),
+  mkCtx((a, b) => `Mỗi giá sách có ${fmt(a)} cuốn sách. Hỏi ${b} giá sách như vậy có bao nhiêu cuốn sách?`, (b) => `${b} giá sách có`, 'cuốn', 'sách'),
+  mkCtx((a, b) => `Mỗi chuyến xe chở ${fmt(a)} kg gạo. Hỏi ${b} chuyến xe chở được bao nhiêu kg gạo?`, (b) => `${b} chuyến xe chở`, 'kg', 'gạo'),
+  mkCtx((a, b) => `Mỗi lớp trồng ${fmt(a)} cây. Hỏi ${b} lớp như vậy trồng được bao nhiêu cây?`, (b) => `${b} lớp trồng`, 'cây'),
+  mkCtx((a, b) => `Mỗi hộp có ${fmt(a)} viên bi. Hỏi ${b} hộp như vậy có bao nhiêu viên bi?`, (b) => `${b} hộp có`, 'viên', 'bi'),
+  mkCtx((a, b) => `Mỗi ngày một xưởng may được ${fmt(a)} chiếc áo. Hỏi ${b} ngày may được bao nhiêu chiếc áo?`, (b) => `${b} ngày may được`, 'chiếc', 'áo'),
+  mkCtx((a, b) => `Mỗi bể chứa ${fmt(a)} lít nước. Hỏi ${b} bể như vậy chứa được bao nhiêu lít nước?`, (b) => `${b} bể chứa`, 'lít', 'nước'),
+  mkCtx((a, b) => `Mỗi cuốn truyện dày ${fmt(a)} trang. Hỏi ${b} cuốn truyện như vậy dày bao nhiêu trang?`, (b) => `${b} cuốn truyện dày`, 'trang'),
+  mkCtx((a, b) => `Mỗi chuyến tàu chở ${fmt(a)} hành khách. Hỏi ${b} chuyến tàu chở được bao nhiêu hành khách?`, (b) => `${b} chuyến tàu chở`, 'hành khách'),
+  mkCtx((a, b) => `Mỗi cửa hàng bán được ${fmt(a)} quyển vở. Hỏi ${b} cửa hàng như vậy bán được bao nhiêu quyển vở?`, (b) => `${b} cửa hàng bán được`, 'quyển', 'vở'),
+  mkCtx((a, b) => `Mỗi sân vận động có ${fmt(a)} chỗ ngồi. Hỏi ${b} sân như vậy có bao nhiêu chỗ ngồi?`, (b) => `${b} sân có`, 'chỗ ngồi'),
 ];
+const UNITS = ['kg', 'quả', 'cuốn', 'cây', 'viên', 'chiếc', 'lít', 'trang'];
 
 const generators = [
   {
-    id: 'g8.1', // tích có nhớ: chọn đáp án
+    id: 'g8.1', covers: ['8.1'], // tích có nhớ: chọn đáp án
     make(rng) {
       const { a, b } = genMul(rng, rng.next() < 0.7);
       const m = mulCalc(a, b), n = m.n, prod = a * b;
       const pool = [];
       for (let i = 1; i < n; i++) {
         const c = m.carries[i - 1];
-        if (c > 0) pool.push({ text: fmt(mulSim(a, b, { i, forget: true })), code: 'NHỚ', why: `Ở hàng ${HN[i]}, có thể con đã quên cộng số nhớ ${c} từ hàng ${HN[i - 1]}.` });
+        if (c > 0) pool.push({ v: mulSim(a, b, { i, forget: true }), code: 'NHỚ', why: `Ở hàng ${HN[i]}, có thể con đã quên cộng số nhớ ${c} từ hàng ${HN[i - 1]}.` });
       }
       for (let i = 1; i < n; i++) {
         const c = m.carries[i - 1];
-        pool.push({ text: fmt(mulSim(a, b, { i, delta: 1 })), code: 'NHỚ', why: `Số nhớ từ hàng ${HN[i - 1]} là ${c}, không phải ${c + 1}.` });
-        if (c > 0) pool.push({ text: fmt(mulSim(a, b, { i, delta: -1 })), code: 'NHỚ', why: `Số nhớ từ hàng ${HN[i - 1]} là ${c}, không phải ${c - 1}.` });
+        pool.push({ v: mulSim(a, b, { i, delta: 1 }), code: 'NHỚ', why: `Số nhớ từ hàng ${HN[i - 1]} là ${c}, không phải ${c + 1}.` });
+        if (c > 0) pool.push({ v: mulSim(a, b, { i, delta: -1 }), code: 'NHỚ', why: `Số nhớ từ hàng ${HN[i - 1]} là ${c}, không phải ${c - 1}.` });
       }
-      pool.push({ text: fmt(est(a) * b), code: 'QUY', why: `${fmt(est(a) * b)} mới là kết quả ước lượng (làm tròn ${fmt(a)} thành ${fmt(est(a))}). Cần tính đúng ${fmt(a)} × ${b}.` });
-      pool.push({ text: fmt(prod + 100), code: 'NHỚ', why: 'Con thử đặt tính nhân dọc lại, nhớ cộng số nhớ vào hàng bên cạnh.' });
-      const wr = distinct(pool, fmt(prod), 3);
+      pool.push({ v: est(a) * b, code: 'QUY', why: `${fmt(est(a) * b)} mới là kết quả ước lượng (làm tròn ${fmt(a)} thành ${fmt(est(a))}). Cần tính đúng ${fmt(a)} × ${b}.` });
+      pool.push({ v: prod + 100, code: 'NHỚ', why: 'Con thử đặt tính nhân dọc lại, nhớ cộng số nhớ vào hàng bên cạnh.' });
+      pool.push({ v: prod - 100, code: 'NHỚ', why: 'Con thử đặt tính nhân dọc lại, nhớ cộng số nhớ vào hàng bên cạnh.' });
+      const wr = pickBalanced(rng, prod, pool).map((w) => ({ text: fmt(w.v), code: w.code, why: w.why }));
       return {
         id: 'g8.1', src: '[biến thể mới]', type: 'choice',
         prompt: `Tích của ${fmt(a)} và ${b} là:`,
@@ -285,12 +335,7 @@ const generators = [
         ],
         hint: 'Mỗi nhóm bằng nhau thì dùng phép nhân. Ước lượng trước, tính sau.',
         explain: {
-          steps: [
-            { text: `Ước lượng: làm tròn ${fmt(a)} đến hàng trăm thành ${fmt(est(a))}. ${fmt(est(a))} × ${b} = ${fmt(e)}.`, visual: wordTable([['Ước lượng', `${fmt(est(a))} × ${b} = ${fmt(e)}`], ['Phép tính', '…'], ['Kết luận', '…']]) },
-            { text: `Phép tính: các nhóm bằng nhau nên NHÂN. Tách ${fmt(a)} theo hàng, nhân từng phần rồi cộng.`, visual: splitTable(a, b, false) },
-            { text: `${fmt(a)} × ${b} = ${fmt(prod)}. Kết quả gần ước lượng ${fmt(e)}, rất hợp lí.`, visual: mulTable(a, b, mulCalc(a, b).n) },
-            { text: `Kết luận (có đơn vị): ${ctx.concl(b, prod)}.`, mark: 'good', visual: wordTable([['Ước lượng', `${fmt(est(a))} × ${b} = ${fmt(e)}`], ['Phép tính', `${fmt(a)} × ${b} = ${fmt(prod)}`], ['Kết luận', ctx.concl(b, prod)]]) },
-          ],
+          steps: wordSteps(a, b, ctx.concl(b, prod), false),
         },
         meta: { a, b },
       };
@@ -302,7 +347,7 @@ const generators = [
     },
   },
   {
-    id: 'g8.3', // phép ngược
+    id: 'g8.3', covers: ['8.7'], // phép ngược
     make(rng) {
       const form = pick(rng, ['nghi', 'may']);
       const b = int(rng, 3, 9);
@@ -317,15 +362,17 @@ const generators = [
           { v: x, code: 'ĐỌC', why: `${fmt(x)} là thương (kết quả sau khi chia), chưa phải số Minh nghĩ.` },
           { v: x - b, code: 'NGƯỢC', why: 'Muốn tìm số bị chia thì lấy thương NHÂN số chia, không phải trừ.' },
           { v: P + 10, code: 'NHỚ', why: `Con nhân đúng hướng rồi, nhưng kết quả còn lệch. Thử lại ${fmt(x)} × ${b} bằng cách nhân dọc.` },
+          { v: P - 10, code: 'NHỚ', why: `Con nhân đúng hướng rồi, nhưng kết quả còn lệch. Thử lại ${fmt(x)} × ${b} bằng cách nhân dọc, nhớ cộng số nhớ.` },
+          { v: P - 100, code: 'NHỚ', why: `Con nhân đúng hướng rồi, nhưng kết quả còn lệch. Thử lại ${fmt(x)} × ${b} bằng cách nhân dọc, nhớ cộng số nhớ.` },
         ];
         steps = [
           { text: `Minh chia số đó cho ${b} được ${fmt(x)}. Muốn tìm số bị chia, mình lấy thương nhân với số chia.`, visual },
-          { text: `${fmt(x)} × ${b} = ${fmt(P)}.`, visual: mulTable(x, b, mulCalc(x, b).n) },
+          ...tidy(vcalcSteps('×', x, b, { maxSteps: 4 })),
           { text: `Thử lại: ${fmt(P)} ÷ ${b} = ${fmt(x)}. Vậy số Minh nghĩ là ${fmt(P)}.`, mark: 'good' },
         ];
         return {
           id: 'g8.3', src: '[biến thể mới]', type: 'choice', prompt, visual,
-          choices: buildChoices(rng, fmt(P), distinct(wrongs.map((w) => ({ text: fmt(w.v), code: w.code, why: w.why })), fmt(P), 3)),
+          choices: buildChoices(rng, fmt(P), pickBalanced(rng, P, wrongs).map((w) => ({ text: fmt(w.v), code: w.code, why: w.why }))),
           hint: 'Phép ngược của phép chia là phép nhân.',
           explain: { steps }, meta: { form, b, x },
         };
@@ -336,16 +383,18 @@ const generators = [
         { v: P * b, code: 'NGƯỢC', why: `Có thể con đã nhân thêm ${b} lần nữa. Đi ngược lại của × ${b} thì phải CHIA cho ${b}.` },
         { v: P - b, code: 'NGƯỢC', why: `Đi ngược của × ${b} là ÷ ${b}, không phải − ${b}.` },
         { v: P + b, code: 'NGƯỢC', why: `Đi ngược của × ${b} là ÷ ${b}, không phải + ${b}.` },
-        { v: x + 10, code: 'NHỚ', why: `Thử lại bằng phép nhân: ${fmt(x + 10)} × ${b} có bằng ${fmt(P)} không?` },
+        { v: x + 10, code: 'NHỚ', why: `Thử lại bằng phép nhân: ${fmt(x + 10)} × ${b} = ${fmt((x + 10) * b)}, chưa bằng ${fmt(P)}.` },
+        { v: x - 10, code: 'NHỚ', why: `Thử lại bằng phép nhân: ${fmt(x - 10)} × ${b} = ${fmt((x - 10) * b)}, chưa bằng ${fmt(P)}.` },
+        { v: x - 1, code: 'NHỚ', why: `Thử lại bằng phép nhân: ${fmt(x - 1)} × ${b} = ${fmt((x - 1) * b)}, chưa bằng ${fmt(P)}.` },
       ];
       steps = [
         { text: `Máy nhân ${b} ra ${fmt(P)}. Muốn tìm số ban đầu, mình đi ngược lại: chia ${fmt(P)} cho ${b}.`, visual },
-        { text: `${fmt(P)} ÷ ${b} = ${fmt(x)}.`, visual: { kind: 'sequence', items: [fmt(P), fmt(x)], arrowLabels: [`÷ ${b}`], highlight: [1] } },
-        { text: `Thử lại: ${fmt(x)} × ${b} = ${fmt(P)}. Vậy đáp án là ${fmt(x)}.`, mark: 'good' },
+        ...tidy(vdivSteps(P, b, { maxSteps: 4 })),
+        { text: `Số đã cho vào máy là ${fmt(x)}. Vậy đáp án là ${fmt(x)}.`, mark: 'good' },
       ];
       return {
         id: 'g8.3', src: '[biến thể mới]', type: 'choice', prompt, visual,
-        choices: buildChoices(rng, fmt(x), distinct(wrongs.map((w) => ({ text: fmt(w.v), code: w.code, why: w.why })), fmt(x), 3)),
+        choices: buildChoices(rng, fmt(x), pickBalanced(rng, x, wrongs).map((w) => ({ text: fmt(w.v), code: w.code, why: w.why }))),
         hint: 'Muốn đi ngược của phép nhân thì dùng phép chia.',
         explain: { steps }, meta: { form, b, x },
       };
@@ -358,7 +407,7 @@ const generators = [
     },
   },
   {
-    id: 'g8.4', // nhiều đáp án: tích bằng T
+    id: 'g8.4', covers: ['8.3'], // nhiều đáp án: tích bằng T
     make(rng) {
       const t = pick(rng, [12, 16, 18, 24, 32, 36, 48]);
       const T = t * 100;
@@ -406,7 +455,7 @@ const generators = [
     },
   },
   {
-    id: 'g8.5', // lập bảng theo hàng
+    id: 'g8.5', covers: ['8.2'], // lập bảng theo hàng
     make(rng) {
       let a, b;
       do { a = int(rng, 112, 698); b = int(rng, 2, 9); } while (Math.floor(a / 10) % 10 === 0 || a % 10 === 0);
@@ -417,19 +466,19 @@ const generators = [
         { text: `● = ${fmt(t * b)}; tổng = ${fmt(p1 + t * b + p3)}`, code: 'HÀNG', why: `${t}0 × ${b} = ${fmt(p2)}, không phải ${fmt(t * b)}. Chữ số ${t} ở hàng chục, giá trị là ${t * 10}.` },
         { text: `● = ${fmt(p2)}; tổng = ${fmt(p2 + p3)}`, code: 'QUY', why: `${fmt(p2 + p3)} mới là ${fmt(p2)} + ${fmt(p3)}. Tổng phải cộng cả ba ô: ${fmt(p1)} + ${fmt(p2)} + ${fmt(p3)}.` },
         { text: `● = ${fmt(p2)}; tổng = ${fmt(p1 + p2 + u)}`, code: 'QUY', why: `Ô cuối là ${u} × ${b} = ${fmt(p3)}, không phải ${u}. Chữ số ${u} cũng phải nhân với ${b}.` },
-      ];
+        { text: `● = ${fmt(p2)}; tổng = ${fmt(tot + 10)}`, code: 'NHỚ', why: `Ô ở giữa đúng rồi. Con cộng lại từng bước: ${fmt(p1)} + ${fmt(p2)} = ${fmt(p1 + p2)}, rồi cộng ${fmt(p3)} được ${fmt(tot)}.` },
+        { text: `● = ${fmt(p2)}; tổng = ${fmt(tot - 10)}`, code: 'NHỚ', why: `Ô ở giữa đúng rồi. Con cộng lại từng bước: ${fmt(p1)} + ${fmt(p2)} = ${fmt(p1 + p2)}, rồi cộng ${fmt(p3)} được ${fmt(tot)}.` },
+        { text: `● = ${fmt(t * 10 + b)}; tổng = ${fmt(p1 + t * 10 + b + p3)}`, code: 'NGƯỢC', why: `Ô ở giữa là ${t * 10} × ${b} (nhân), không phải ${t * 10} + ${b} (cộng).` },
+      ].filter((w) => w.text !== right);
+      const wrPick = shuffle(rng, pool).filter((w, i, arr) => arr.findIndex((z) => z.text === w.text) === i).slice(0, 3);
       return {
         id: 'g8.5', src: '[biến thể mới]', type: 'choice',
         prompt: `Lập bảng ${a} × ${b}: ${fmt(p1)} + ● + ${fmt(p3)} = ? Chọn số ở ● và kết quả phép nhân.`,
         visual: splitTable(a, b, true),
-        choices: buildChoices(rng, right, distinct(pool, right, 3)),
+        choices: buildChoices(rng, right, wrPick),
         hint: `Ô ở giữa là hàng chục: ${t * 10} × ${b}.`,
         explain: {
-          steps: [
-            { text: `Tách ${a} = ${h * 100} + ${t * 10} + ${u}, rồi nhân từng phần với ${b}.`, visual: { kind: 'place', digits: String(a), showValue: true, highlight: [0, 1, 2], anim: 'fill' } },
-            { text: `${h * 100} × ${b} = ${fmt(p1)}; ${t * 10} × ${b} = ${fmt(p2)}; ${u} × ${b} = ${fmt(p3)}. Vậy ● = ${fmt(p2)}.`, visual: splitTable(a, b, false) },
-            { text: `Cộng lại: ${fmt(p1)} + ${fmt(p2)} + ${fmt(p3)} = ${fmt(tot)}. Vậy đáp án là ${right}.`, mark: 'good' },
-          ],
+          steps: tableSteps(a, b, p2, tot, `Ô ● là ${fmt(p2)}, tổng là ${fmt(tot)}. Vậy đáp án là ${right}.`),
         },
         meta: { a, b },
       };
@@ -441,6 +490,101 @@ const generators = [
       return `● = ${fmt(parts[1])}; tổng = ${fmt(parts.reduce((x, y) => x + y, 0))}`;
     },
   },
+  {
+    id: 'g8.6', covers: ['8.4'], // bấm kết quả nhân dọc có nhớ
+    make(rng) {
+      const { a, b } = genMul(rng, rng.next() < 0.8);
+      const m = mulCalc(a, b), n = m.n, prod = a * b, ea = est(a);
+      const cand = [];
+      for (let i = 1; i < n; i++) {
+        const c = m.carries[i - 1];
+        if (c > 0) cand.push({ match: String(mulSim(a, b, { i, forget: true })), code: 'NHỚ', why: `${m.ds[i - 1]} × ${b}${i > 1 ? ` + ${m.carries[i - 2]}` : ''} = ${m.ps[i - 1]}, viết ${m.ps[i - 1] % 10} nhớ ${c}. Hàng ${HN[i]}: ${m.ds[i]} × ${b} thêm nhớ ${c} là ${m.ps[i]}, không phải ${m.ds[i] * b}.` });
+      }
+      for (let i = 1; i < n; i++) cand.push({ match: String(mulSim(a, b, { i, delta: 1 })), code: 'NHỚ', why: `Số nhớ từ hàng ${HN[i - 1]} là ${m.carries[i - 1]}, không phải ${m.carries[i - 1] + 1}.` });
+      const seen = new Set([String(prod)]), wrongHints = [];
+      for (const w of cand) if (!seen.has(w.match)) { seen.add(w.match); wrongHints.push(w); }
+      const who = pick(rng, NAMES);
+      const lead = pick(rng, [`Tính ${fmt(a)} × ${b}.`, `${who} đặt tính ${fmt(a)} × ${b}.`, `Đặt tính rồi tính ${fmt(a)} × ${b}.`]);
+      return {
+        id: 'g8.6', src: '[biến thể mới]', type: 'numpad',
+        prompt: `${lead} Ước lượng ${fmt(ea)} × ${b} = ${fmt(ea * b)}, kết quả đúng phải gần số này.`,
+        visual: mulTable(a, b, 0),
+        slots: [{ label: `${fmt(a)} × ${b} =`, answer: String(prod), len: String(prod).length }],
+        wrongHints: wrongHints.slice(0, 2),
+        hint: `Hàng đơn vị: ${m.ds[0]} × ${b} = ${m.ps[0]}, viết ${m.ps[0] % 10}${m.ps[0] >= 10 ? ` nhớ ${Math.floor(m.ps[0] / 10)}` : ''}.`,
+        explain: { steps: mulSteps(a, b) },
+        meta: { a, b },
+      };
+    },
+    solve(item) { const { a, b } = item.meta; return String(a * b); },
+  },
+  {
+    id: 'g8.7', covers: ['8.5'], // xếp thứ tự các bước giải bài lời văn
+    make(rng) {
+      const ctx = pick(rng, CONTEXTS);
+      const { a, b } = genMul(rng, true);
+      const prod = a * b, ea = est(a), e = ea * b;
+      const cards = shuffle(rng, [
+        { id: 'est', text: `Ước lượng: ${fmt(ea)} × ${b} = ${fmt(e)}` },
+        { id: 'calc', text: `Phép tính: ${fmt(a)} × ${b} = ${fmt(prod)}` },
+        { id: 'ans', text: `Kết luận: ${ctx.concl(b, prod)}` },
+      ]);
+      return {
+        id: 'g8.7', src: '[biến thể mới]', type: 'order',
+        prompt: `${ctx.q(a, b)}\nXếp các bước giải theo đúng thứ tự (chạm bước làm trước).`,
+        items: cards,
+        answer: ['est', 'calc', 'ans'],
+        wrongHints: [
+          { match: ['calc', 'est', 'ans'], code: 'QUY', why: 'Ước lượng đi TRƯỚC để sau này con kiểm tra kết quả có hợp lí không.' },
+          { match: ['est', 'ans', 'calc'], code: 'QUY', why: 'Phải tính xong rồi mới kết luận được. Kết luận luôn đứng cuối cùng.' },
+        ],
+        hint: 'Bước nào giúp kiểm tra kết quả sau cùng?',
+        explain: {
+          steps: wordSteps(a, b, ctx.concl(b, prod), true),
+        },
+        meta: { a, b },
+      };
+    },
+    solve(item) {
+      const rank = (t) => ['Ước lượng', 'Phép tính', 'Kết luận'].findIndex((w) => t.startsWith(w));
+      return item.items.slice().sort((x, y) => rank(x.text) - rank(y.text)).map((x) => x.id).join(',');
+    },
+  },
+  {
+    id: 'g8.8', covers: ['8.6'], // chọn câu kết luận đầy đủ (có đơn vị)
+    make(rng) {
+      const ci = int(rng, 0, CONTEXTS.length - 1), ctx = CONTEXTS[ci];
+      const { a, b } = genMul(rng, true);
+      const m = mulCalc(a, b), prod = a * b;
+      const say = (v, unit = ctx.unit) => `${ctx.pre(b)} ${fmt(v)}${unit ? ' ' + unit : ''}`;
+      const right = say(prod);
+      const others = [];
+      others.push({ text: say(a + b), code: 'NGƯỢC', why: `Mỗi nhóm có số lượng bằng nhau, ${b} nhóm thì dùng phép NHÂN, không phải cộng ${fmt(a)} + ${b}.` });
+      const i = 1 + (int(rng, 0, 1) && m.n > 2 ? 1 : 0);
+      if (m.carries[i - 1] > 0) others.push({ text: say(mulSim(a, b, { i, forget: true })), code: 'NHỚ', why: `Ở hàng ${HN[i]}, có thể con đã quên cộng số nhớ ${m.carries[i - 1]} từ hàng ${HN[i - 1]}.` });
+      others.push({ text: say(mulSim(a, b, { i: 1, delta: 1 })), code: 'NHỚ', why: `Số nhớ từ hàng đơn vị là ${m.carries[0]}, không phải ${m.carries[0] + 1}.` });
+      const wu = pick(rng, UNITS.filter((u) => u !== ctx.unit));
+      others.push({ text: say(prod, wu), code: 'ĐV', why: `Số đúng rồi, nhưng đơn vị của đề bài là "${ctx.unit}", không phải "${wu}".` });
+      const noUnit = { text: say(prod, ''), code: 'ĐV', why: `Số đúng rồi, nhưng kết luận cần có đơn vị: ${fmt(prod)} ${ctx.unit}.` };
+      const seen = new Set([right, noUnit.text]), picked = [];
+      for (const w of shuffle(rng, others)) if (!seen.has(w.text)) { seen.add(w.text); picked.push(w); if (picked.length === 2) break; }
+      return {
+        id: 'g8.8', src: '[biến thể mới]', type: 'choice',
+        prompt: `${ctx.q(a, b)} Chọn câu kết luận ĐẦY ĐỦ (có đơn vị).`,
+        choices: buildChoices(rng, right, [noUnit, ...picked]),
+        hint: 'Các nhóm bằng nhau thì dùng phép nhân. Đừng quên đơn vị.',
+        explain: {
+          steps: [
+            { text: `Mỗi nhóm có ${fmt(a)} ${ctx.unit}, có ${b} nhóm như vậy: các nhóm bằng nhau nên dùng phép nhân ${fmt(a)} × ${b}.`, visual: wordTable([['Mỗi nhóm', `${fmt(a)} ${ctx.unit}`], [`${b} nhóm`, `${fmt(a)} × ${b} = ?`]]) },
+            ...tidy(vcalcSteps('×', a, b, { maxSteps: 5 })),
+            { text: `Kết luận phải có đơn vị: ${right}. Vậy đáp án là "${right}".`, mark: 'good' },
+          ],
+        },
+        meta: { ci, a, b },
+      };
+    },
+    solve(item) { const { ci, a, b } = item.meta; const c = CONTEXTS[ci]; return `${c.pre(b)} ${fmt(a * b)} ${c.unit}`; },
+  },
 ];
 
 export default {
@@ -450,13 +594,16 @@ export default {
     { text: 'Thuộc bảng nhân thì tính rất nhanh. Kết quả của phép nhân gọi là tích. Muốn tìm số bị chia (phép chia hết), lấy thương nhân với số chia.', visual: { kind: 'array', rows: 4, cols: 6, showEq: true, groupBy: 'rows', anim: 'fill' } },
     { text: 'Nhân từng hàng rồi cộng lại: 235 × 3 = 600 + 90 + 15 = 705. Hoặc nhân dọc và nhớ cộng số nhớ vào hàng sau.', visual: splitTable(235, 3, false) },
     { text: 'Bài lời văn: Ước lượng (làm tròn thừa số), Phép tính, rồi Kết luận có ĐƠN VỊ. Kết quả phải gần ước lượng.', visual: wordTable([['Ước lượng', '400 × 7 = 2 800'], ['Phép tính', '368 × 7 = 2 576'], ['Kết luận', '7 ngày thu 2 576 kg']]) },
+    { text: 'Cách làm nháp: con đặt tính thẳng cột, số nhân viết dưới hàng đơn vị, rồi nhân từng chữ số từ phải sang trái. Có nhớ thì viết số nhỏ phía trên hàng bên cạnh.', visual: vcalcDone(368, 7) },
   ],
   lesson: [
     { text: 'Phép nhân là cộng nhiều lần: 3 hàng, mỗi hàng 4 quả. 4 + 4 + 4 = 3 × 4 = 12. Kết quả của phép nhân gọi là TÍCH.', visual: { kind: 'array', rows: 3, cols: 4, emoji: '🍎', showEq: true, groupBy: 'rows', anim: 'fill' } },
-    { text: 'Số lớn thì tách theo hàng: 235 = 200 + 30 + 5. Nhân từng phần với 3: 200 × 3 = 600, 30 × 3 = 90, 5 × 3 = 15.', visual: splitTable(235, 3, false) },
-    { text: 'Cộng các kết quả lại: 600 + 90 + 15 = 705. Vậy 235 × 3 = 705.', visual: wordTable([['Trăm', '200 × 3 = 600'], ['Chục', '30 × 3 = 90'], ['Đơn vị', '5 × 3 = 15'], ['Cộng', '600 + 90 + 15 = 705']]) },
-    { text: 'Có cách ngắn hơn là nhân dọc 368 × 7. Hàng đơn vị: 8 × 7 = 56, viết 6 nhớ 5.', visual: mulTable(368, 7, 1) },
-    { text: 'Hàng chục: 6 × 7 = 42, thêm 5 là 47, viết 7 nhớ 4. Hàng trăm: 3 × 7 = 21, thêm 4 là 25. Vậy 368 × 7 = 2 576.', visual: mulTable(368, 7, 3) },
+    // nhân dọc không nhớ
+    ...tidy(vcalcSteps('×', 214, 3, { maxSteps: 4 })),
+    // nhân dọc có nhớ
+    ...tidy(vcalcSteps('×', 368, 7, { maxSteps: 5 })),
+    // vì sao đặt tính cho kết quả đúng: tách theo hàng
+    ...tidy(partialMulSteps(368, 7).map((st, i) => (i === 0 ? Object.assign({}, st, { text: 'Vì sao đặt tính cho kết quả đúng? ' + st.text, say: 'Vì sao đặt tính cho kết quả đúng? ' + st.say }) : st))),
     { text: 'Bài lời văn: mỗi ngày thu 368 kg, 7 ngày thu bao nhiêu? Ước lượng, tính, rồi kết luận có đơn vị.', visual: wordTable([['Ước lượng', '400 × 7 = 2 800'], ['Phép tính', '368 × 7 = 2 576'], ['Kết luận', '7 ngày thu 2 576 kg cà chua']]) },
   ],
   items,

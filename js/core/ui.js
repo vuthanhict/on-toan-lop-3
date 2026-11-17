@@ -4,6 +4,7 @@ import { speak } from './speech.js';
 import { icon } from './icons.js';
 import { mascotSVG } from './mascot.js';
 import { play } from './sfx.js';
+import { viewColumn } from './column.js';
 
 export function h(tag, attrs, ...kids) {
   const el = document.createElement(tag);
@@ -294,7 +295,7 @@ function viewClassify(item) {
 }
 
 export function renderItem(item) {
-  const views = { choice: viewChoice, multi: viewChoice, tf: viewTF, numpad: viewNumpad, order: viewOrder, match: viewMatch, classify: viewClassify };
+  const views = { choice: viewChoice, multi: viewChoice, tf: viewTF, numpad: viewNumpad, column: viewColumn, order: viewOrder, match: viewMatch, classify: viewClassify };
   const body = (views[item.type] || viewChoice)(item);
   const card = h('div', { class: 'item' },
     h('div', { class: 'item-q' }, promptBlock(item), item.visual ? h('div', { class: 'item-visual' }, renderVisual(item.visual)) : null),

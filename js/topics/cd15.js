@@ -13,97 +13,105 @@ function mkChoices(rng, correctText, wrongs, correctExtra = {}) {
   return shuffle(rng, [{ text: correctText, correct: true, ...correctExtra }, ...ws]);
 }
 
-// hình có số trục khác nhau (mỗi số trục có thể có vài hình cùng số trục)
-const SHAPE_TABLE = {
-  1: [
-    { name: 'tam giác cân (không đều)', spec: sh('triangle', { variant: 'isosceles' }) },
-    { name: 'trái tim', spec: sh('heart') },
-  ],
-  2: [
-    { name: 'hình chữ nhật (không vuông)', spec: sh('rectangle') },
-    { name: 'đồng hồ cát', spec: sh('hourglass') },
-  ],
-  3: [{ name: 'tam giác đều', spec: sh('triangle', { variant: 'equilateral' }) }],
-  4: [{ name: 'hình vuông', spec: sh('square') }],
-  5: [{ name: 'ngũ giác đều', spec: sh('pentagon') }],
-  6: [{ name: 'lục giác đều', spec: sh('hexagon') }],
+// ---------- ngữ cảnh dùng chung cho bộ sinh ----------
+const cap1 = (s) => s[0].toUpperCase() + s.slice(1);
+const NAMES = ['An', 'Bình', 'Chi', 'Dũng', 'Hà', 'Lan', 'Minh', 'Nam', 'Mai', 'Phúc', 'Quân', 'Thu'];
+const listVi = (a) => (a.length <= 1 ? a.join('') : a.slice(0, -1).join(', ') + ' và ' + a[a.length - 1]);
+
+// Bảng hình có trục đối xứng: c = số trục; mis = [số đếm nhầm thường gặp, lời giải]; expl = lời giải thích ngắn
+const SH = {
+  tgd: { name: 'tam giác đều', c: 3, spec: sh('triangle', { variant: 'equilateral' }), mis: [1, 'Tam giác đều có 3 đỉnh, mỗi đỉnh có một trục đi qua nó: 3 trục.'], expl: 'Mỗi đỉnh có một trục đi qua nó và đi qua điểm chính giữa cạnh đối diện' },
+  vuong: { name: 'hình vuông', c: 4, spec: sh('square'), mis: [2, 'Hình vuông còn có hai đường chéo cũng là trục, ngoài đường dọc và đường ngang: 2 + 2 = 4.'], expl: 'Có 1 trục dọc, 1 trục ngang và 2 đường chéo' },
+  cn: { name: 'hình chữ nhật (không phải hình vuông)', c: 2, spec: sh('rectangle'), mis: [4, 'Đường chéo của hình chữ nhật không phải trục: gấp theo đường chéo, hai nửa không trùng khít.'], expl: 'Chỉ có đường dọc và đường ngang ở giữa là trục, còn đường chéo thì không' },
+  thoi: { name: 'hình thoi (không phải hình vuông)', c: 2, spec: sh('rhombus'), mis: [4, 'Hình thoi chỉ có hai đường chéo là trục. Đường dọc, đường ngang qua giữa các cạnh không phải trục.'], expl: 'Hai đường chéo là trục, còn các đường nối điểm chính giữa các cạnh thì không' },
+  ng: { name: 'ngũ giác đều', c: 5, spec: sh('pentagon'), mis: [1, 'Ngũ giác đều có 5 đỉnh, mỗi đỉnh có một trục đi qua: 5 trục.'], expl: 'Mỗi đỉnh có một trục đi qua nó' },
+  lg: { name: 'lục giác đều', c: 6, spec: sh('hexagon'), mis: [3, 'Lục giác đều có 3 trục qua các đỉnh và 3 trục qua điểm chính giữa các cạnh: 3 + 3 = 6.'], expl: 'Có 3 trục qua các đỉnh đối nhau và 3 trục qua điểm chính giữa các cạnh đối nhau' },
+  bg: { name: 'bát giác đều', c: 8, spec: sh('octagon'), mis: [4, 'Bát giác đều có 4 trục qua các đỉnh và 4 trục qua điểm chính giữa các cạnh: 4 + 4 = 8.'], expl: 'Có 4 trục qua các đỉnh đối nhau và 4 trục qua điểm chính giữa các cạnh đối nhau' },
+  tgc: { name: 'tam giác cân (không đều)', c: 1, spec: sh('triangle', { variant: 'isosceles' }), mis: [3, 'Chỉ tam giác đều mới có 3 trục. Tam giác cân (không đều) chỉ có trục đi qua đỉnh và điểm giữa đáy.'], expl: 'Chỉ có một trục đi qua đỉnh và điểm chính giữa cạnh đáy' },
+  tim: { name: 'trái tim', c: 1, spec: sh('heart'), mis: [2, 'Trái tim chỉ gấp được theo đường dọc ở giữa. Gấp theo đường ngang thì hai nửa không trùng khít.'], expl: 'Chỉ gấp theo đường dọc ở giữa thì hai nửa mới trùng khít' },
+  dhc: { name: 'đồng hồ cát', c: 2, spec: sh('hourglass'), mis: [1, 'Đồng hồ cát gấp theo đường dọc được, gấp theo đường ngang cũng được: 2 trục.'], expl: 'Gấp theo đường dọc và gấp theo đường ngang ở giữa đều trùng khít' },
+  dieu: { name: 'hình cái diều', c: 1, spec: sh('kite'), mis: [2, 'Hình cái diều chỉ có một trục là đường chéo dài. Đường chéo ngắn không phải trục.'], expl: 'Chỉ gấp theo đường chéo dài thì hai nửa mới trùng khít' },
+  htc: { name: 'hình thang cân', c: 1, spec: sh('trapezoid'), mis: [2, 'Hình thang cân chỉ có trục dọc ở giữa. Gấp theo đường ngang thì hai nửa không trùng khít.'], expl: 'Chỉ gấp theo đường dọc ở giữa thì hai nửa mới trùng khít' },
+  sao: { name: 'ngôi sao năm cánh', c: 5, spec: sh('star'), mis: [1, 'Ngôi sao năm cánh có 5 trục, mỗi trục đi qua một cánh sao.'], expl: 'Mỗi cánh sao có một trục đi qua nó' },
 };
-const POLY = { 3: ['tam giác đều', 'triangle', 'equilateral'], 4: ['hình vuông', 'square'], 5: ['ngũ giác đều', 'pentagon'], 6: ['lục giác đều', 'hexagon'], 8: ['bát giác đều', 'octagon'] };
+const KEYS = Object.keys(SH);
+const byCount = (c) => KEYS.filter((k) => SH[k].c === c);
+const axesOf = (k) => ({ ...SH[k].spec, axes: ['all'] });
 
 // ---------- bộ sinh ----------
-// g15.1: đa giác đều n cạnh có bao nhiêu trục
+// g15.1: điền số trục đối xứng của 3 hình — bài 15.1
 const g1 = {
-  id: 'g15.1',
+  id: 'g15.1', covers: ['15.1'],
   make(rng) {
-    const n = pick(rng, [3, 4, 5, 6, 8]);
-    const [name, shape, variant] = POLY[n];
-    const spec = (extra = {}) => sh(shape, { ...(variant ? { variant } : {}), ...extra });
+    const ks = shuffle(rng, KEYS).slice(0, 3);
+    const answers = ks.map((k) => SH[k].c);
     const wh = [];
-    if (n % 2 === 0) {
-      wh.push({ match: String(n / 2), code: 'ĐẾM', why: `Có thể con mới đếm một loại trục. Có ${n / 2} trục đi qua các đỉnh và ${n / 2} trục đi qua điểm chính giữa các cạnh: ${n / 2} + ${n / 2} = ${n}.` });
-    } else {
-      wh.push({ match: String(n - 1), code: 'ĐẾM', why: `Mỗi đỉnh có một trục đi qua nó và đi qua điểm chính giữa cạnh đối diện. Có ${n} đỉnh nên có ${n} trục.` });
-    }
-    wh.push({ match: '1', code: 'ĐẾM', why: 'Còn nhiều đường gấp nữa cho hai nửa trùng khít. Con hãy thử gấp qua từng đỉnh.' });
+    ks.forEach((k, i) => {
+      const w = SH[k].mis[0];
+      if (w === answers[i]) return;
+      const arr = answers.slice(); arr[i] = w;
+      wh.push({ match: arr.join('|'), code: 'ĐẾM', why: SH[k].mis[1] });
+    });
+    const t = int(rng, 0, 2);
+    const prompt = t === 0 ? 'Điền số trục đối xứng của mỗi hình.' : t === 1 ? 'Mỗi hình dưới đây có bao nhiêu trục đối xứng? Điền số vào chỗ trống.' : 'Con hãy đếm và điền số trục đối xứng của từng hình.';
     return {
       id: 'g15.1', src: '[biến thể mới]', type: 'numpad',
-      prompt: `Đa giác đều có ${n} cạnh bằng nhau (${name}). Hình này có bao nhiêu trục đối xứng?`,
-      visual: spec(),
-      hint: 'Với đa giác đều, thử xem số trục có liên quan gì tới số cạnh.',
-      slots: [{ label: 'Số trục', answer: String(n), len: String(n).length }],
-      suffix: 'trục đối xứng',
+      prompt: `${prompt} (${ks.map((k) => SH[k].name.replace(/ \(.*\)/, '')).join(', ')})`,
+      visual: SH[ks[1]].spec,
+      hint: 'Thử gấp đôi hình: có mấy đường gấp cho hai nửa trùng khít?',
+      slots: ks.map((k, i) => ({ label: `${'abc'[i]}) ${cap1(SH[k].name)} có`, answer: String(SH[k].c), len: 1, unit: 'trục' })),
       wrongHints: wh,
       explain: {
         steps: [
-          { text: `Đa giác đều có ${n} cạnh bằng nhau và ${n} góc bằng nhau.`, visual: spec({ label: true }) },
-          { text: `Với đa giác đều, số trục đối xứng bằng số cạnh.`, visual: spec({ axes: ['all'], anim: 'fold' }) },
-          { text: `Vậy ${name} có ${n} trục đối xứng. Đáp án là ${n}.`, visual: spec({ axes: ['all'] }) },
+          ...ks.map((k) => ({ text: `${cap1(SH[k].name)}: ${SH[k].expl}. Vậy có ${SH[k].c} trục.`, visual: axesOf(k) })),
+          { text: `Đáp án là ${answers.join('; ')}.` },
         ],
       },
-      meta: { n },
+      meta: { ks },
     };
   },
-  solve(item) { return String(item.meta.n); },
+  solve(item) { return item.meta.ks.map((k) => String(SH[k].c)).join('|'); },
 };
 
-// g15.2: hình nào có đúng k trục
+// g15.2: hình nào có đúng k trục — bài 15.7
 const g2 = {
-  id: 'g15.2',
+  id: 'g15.2', covers: ['15.7'],
   make(rng) {
-    const k = int(rng, 1, 6);
-    const others = shuffle(rng, [1, 2, 3, 4, 5, 6].filter((x) => x !== k)).slice(0, 3);
-    const names = {};
-    for (const c of [k, ...others]) names[c] = pick(rng, SHAPE_TABLE[c]);
-    const correct = names[k].name;
-    const wrongs = others.map((c) => ({
-      text: names[c].name, code: 'ĐẾM', visual: names[c].spec,
-      why: `${names[c].name[0].toUpperCase() + names[c].name.slice(1)} có ${c} trục, không phải ${k} trục.`,
+    const k = pick(rng, [1, 2, 3, 4, 5, 6, 8]);
+    const kCorrect = pick(rng, byCount(k));
+    const others = shuffle(rng, [1, 2, 3, 4, 5, 6, 8].filter((x) => x !== k)).slice(0, 3).map((c) => pick(rng, byCount(c)));
+    const correct = SH[kCorrect].name;
+    const wrongs = others.map((o) => ({
+      text: SH[o].name, code: 'ĐẾM', visual: SH[o].spec,
+      why: `${cap1(SH[o].name)} có ${SH[o].c} trục, không phải ${k} trục.`,
     }));
+    const t = int(rng, 0, 2);
+    const prompt = t === 0 ? `Hình nào dưới đây có đúng ${k} trục đối xứng?` : t === 1 ? `Chọn hình có đúng ${k} trục đối xứng.` : `Một hình có đúng ${k} trục đối xứng. Đó là hình nào trong các hình sau?`;
     return {
       id: 'g15.2', src: '[biến thể mới]', type: 'choice',
-      prompt: `Hình nào dưới đây có đúng ${k} trục đối xứng?`,
+      prompt,
       hint: 'Tưởng tượng gấp đôi hình: có mấy đường gấp cho hai nửa trùng khít?',
       layout: 'grid2',
-      choices: mkChoices(rng, correct, wrongs, { visual: names[k].spec }),
+      choices: mkChoices(rng, correct, wrongs, { visual: SH[kCorrect].spec }),
       explain: {
         steps: [
-          { text: `Đếm số đường gấp cho hai nửa trùng khít của từng hình.`, visual: names[k].spec },
-          { text: `${correct[0].toUpperCase() + correct.slice(1)} có ${k} trục đối xứng.`, visual: { ...names[k].spec, axes: k === 2 ? ['v', 'h'] : k === 1 ? ['v'] : ['all'], anim: 'fold' } },
-          { text: `Các hình còn lại có số trục khác ${k}. Đáp án là ${correct}.` },
+          { text: 'Đếm số đường gấp cho hai nửa trùng khít của từng hình.', visual: SH[kCorrect].spec },
+          { text: `${cap1(correct)}: ${SH[kCorrect].expl}. Vậy có ${k} trục.`, visual: { ...axesOf(kCorrect), anim: 'fold' } },
+          { text: `${others.map((o) => `${SH[o].name} có ${SH[o].c} trục`).join('; ')}. Đáp án là ${correct}.` },
         ],
       },
-      meta: { k, names: Object.fromEntries(Object.entries(names).map(([c, v]) => [c, v.name])) },
+      meta: { k, keys: [kCorrect, ...others] },
     };
   },
-  solve(item) { return item.meta.names[item.meta.k]; },
+  solve(item) { const { k, keys } = item.meta; return SH[keys.find((x) => SH[x].c === k)].name; },
 };
 
-// g15.3: xếp theo số trục
+// g15.3: xếp theo số trục (bài luyện thêm)
 const g3 = {
   id: 'g15.3',
   make(rng) {
-    const counts = shuffle(rng, [1, 2, 3, 4, 5, 6]).slice(0, 4);
-    const info = counts.map((c) => ({ c, ...pick(rng, SHAPE_TABLE[c]) }));
+    const counts = shuffle(rng, [1, 2, 3, 4, 5, 6, 8]).slice(0, 4);
+    const info = counts.map((c) => ({ c, name: SH[pick(rng, byCount(c))].name }));
     const inc = rng.next() < 0.5;
     const sortedIds = info.slice().sort((a, b) => (inc ? a.c - b.c : b.c - a.c)).map((x) => 's' + x.c);
     const rev = sortedIds.slice().reverse();
@@ -119,7 +127,7 @@ const g3 = {
       wrongHints: [{ match: rev, code: 'ĐỌC', why: `Đề yêu cầu xếp từ ${inc ? 'ÍT đến NHIỀU' : 'NHIỀU đến ÍT'}. Có thể con đã xếp ngược lại.` }],
       explain: {
         steps: [
-          { text: `Đếm số trục. ${info.map((x) => `${x.name[0].toUpperCase() + x.name.slice(1)} có ${x.c} trục`).join('. ')}.` },
+          { text: `Đếm số trục. ${info.map((x) => `${cap1(x.name)} có ${x.c} trục`).join('. ')}.` },
           { text: `Xếp từ ${inc ? 'ít đến nhiều' : 'nhiều đến ít'}: ${txt}.` },
         ],
       },
@@ -130,6 +138,286 @@ const g3 = {
     const { counts, inc } = item.meta;
     return counts.slice().sort((a, b) => (inc ? a.c - b.c : b.c - a.c)).map((x) => x.id).join(',');
   },
+};
+
+// g15.4: một hình có bao nhiêu trục — bài 15.2
+const g4 = {
+  id: 'g15.4', covers: ['15.2'],
+  make(rng) {
+    const key = pick(rng, KEYS);
+    const s = SH[key];
+    const c = s.c;
+    const cand = [s.mis[0], c + 1, c - 1, c + 2, c * 2, 1, 2, 3, 4].filter((x) => x >= 1 && x !== c);
+    const ws = [];
+    cand.forEach((x) => { if (!ws.includes(x)) ws.push(x); });
+    const head = ws.shift();
+    const rest = shuffle(rng, ws.slice(0, 5)).slice(0, 2);
+    const wrongs = [head, ...rest].map((w, i) => ({
+      text: `${w} trục`, code: i === 0 ? 'QUY' : 'ĐẾM',
+      why: i === 0 ? s.mis[1] : w > c ? `Gấp thử từng đường: chỉ có ${c} đường làm hai nửa trùng khít, không tới ${w}.` : `Còn đường gấp khác cũng làm hai nửa trùng khít, nên có nhiều hơn ${w} trục.`,
+    }));
+    const t = int(rng, 0, 2);
+    const prompt = t === 0 ? `${cap1(s.name)} có bao nhiêu trục đối xứng?` : t === 1 ? `Hình trong hình là ${s.name}. Hình đó có bao nhiêu trục đối xứng?` : `Con hãy đếm số trục đối xứng của ${s.name} (xem hình).`;
+    return {
+      id: 'g15.4', src: '[biến thể mới]', type: 'choice',
+      prompt,
+      visual: s.spec,
+      hint: 'Thử gấp theo đường dọc, đường ngang, rồi đường chéo.',
+      choices: mkChoices(rng, `${c} trục`, wrongs),
+      explain: {
+        steps: [
+          { text: 'Gấp đôi hình theo từng đường, xem hai nửa có trùng khít không.', visual: s.spec },
+          { text: `${s.expl}. Vậy có ${c} trục.`, visual: { ...axesOf(key), anim: 'fold' } },
+          { text: `Đáp án là ${c} trục.` },
+        ],
+      },
+      meta: { key },
+    };
+  },
+  solve(item) { return `${SH[item.meta.key].c} trục`; },
+};
+
+// g15.5: cắt góc hình vuông / chữ nhật, đếm trục bằng phép phản xạ — bài 15.3
+function cutShape(box, cuts, c) {
+  const [x0, y0, x1, y1] = box; const pts = [];
+  if (cuts[0]) pts.push([x0, y0 + c], [x0 + c, y0]); else pts.push([x0, y0]);
+  if (cuts[1]) pts.push([x1 - c, y0], [x1, y0 + c]); else pts.push([x1, y0]);
+  if (cuts[2]) pts.push([x1, y1 - c], [x1 - c, y1]); else pts.push([x1, y1]);
+  if (cuts[3]) pts.push([x0 + c, y1], [x0, y1 - c]); else pts.push([x0, y1]);
+  return pts;
+}
+// các đường gấp ứng viên và phép phản xạ qua chúng (tâm hộp)
+function symLines(box) {
+  const [x0, y0, x1, y1] = box; const cx = (x0 + x1) / 2, cy = (y0 + y1) / 2; const sq = Math.abs((x1 - x0) - (y1 - y0)) < 1e-9;
+  const L = [
+    { id: 'v', f: ([x, y]) => [2 * cx - x, y] },
+    { id: 'h', f: ([x, y]) => [x, 2 * cy - y] },
+  ];
+  if (sq) { L.push({ id: 'd1', f: ([x, y]) => [cx + (y - cy), cy + (x - cx)] }, { id: 'd2', f: ([x, y]) => [cx - (y - cy), cy - (x - cx)] }); }
+  else { L.push({ id: 'd1', f: null }, { id: 'd2', f: null }); }
+  return L;
+}
+function axesList(pts, box) {
+  const key = (p) => `${p[0].toFixed(4)},${p[1].toFixed(4)}`;
+  const set = new Set(pts.map(key));
+  return symLines(box).filter((l) => l.f && pts.every((p) => set.has(key(l.f(p))))).map((l) => l.id);
+}
+const axisName = { v: 'đường dọc ở giữa', h: 'đường ngang ở giữa', d1: 'đường chéo nối góc trên bên trái với góc dưới bên phải', d2: 'đường chéo nối góc trên bên phải với góc dưới bên trái' };
+const CUT_PATTERNS = [[1, 0, 0, 0], [1, 1, 0, 0], [1, 0, 1, 0], [1, 1, 1, 1]];
+const rot = (a, r) => a.map((_, i) => a[(i + r) % 4]);
+const g5 = {
+  id: 'g15.5', covers: ['15.3'],
+  make(rng) {
+    let out = null;
+    for (let tries = 0; tries < 60 && !out; tries++) {
+      const isSq = rng.next() < 0.7;
+      const box = isSq ? [10, 10, 90, 90] : (rng.next() < 0.5 ? [6, 24, 94, 76] : [24, 6, 76, 94]);
+      const base = pick(rng, CUT_PATTERNS);
+      const cuts = rot(base, int(rng, 0, 3));
+      const c = isSq ? int(rng, 12, 28) : int(rng, 10, 18);
+      const pts = cutShape(box, cuts, c);
+      const ax = axesList(pts, box);
+      if (ax.length === 0) continue;
+      out = { isSq, box, cuts, c, pts, ax, base };
+    }
+    const { isSq, box, cuts, c, pts, ax } = out;
+    const k = ax.length;
+    const wide = box[2] - box[0] > box[3] - box[1];
+    const where = ['góc trên bên trái', 'góc trên bên phải', 'góc dưới bên phải', 'góc dưới bên trái'];
+    const idx = cuts.map((x, i) => (x ? i : -1)).filter((i) => i >= 0);
+    const frame = isSq ? 'hình vuông' : 'hình chữ nhật';
+    let desc;
+    if (idx.length === 1) desc = `Con cắt bỏ ${where[idx[0]]} của một ${frame}`;
+    else if (idx.length === 4) desc = `Con cắt bỏ cả bốn góc của một ${frame} (các vết cắt bằng nhau)`;
+    else if ((idx[1] - idx[0]) % 2 === 0) desc = `Con cắt bỏ hai góc ở hai đầu của một đường chéo ${isSq ? 'hình vuông' : 'hình chữ nhật'} (hai vết cắt bằng nhau)`;
+    else {
+      const topBottom = (idx[0] === 0 && idx[1] === 1) || (idx[0] === 2 && idx[1] === 3);
+      desc = isSq ? `Con cắt bỏ hai góc cạnh nhau của một hình vuông (hai vết cắt bằng nhau)` : `Con cắt bỏ hai góc ở hai đầu của một cạnh ${topBottom === wide ? 'dài' : 'ngắn'} của một ${frame} (hai vết cắt bằng nhau, hình không phải hình vuông)`;
+    }
+    const cx = 50, cy = 50, e = 5;
+    const lineOf = (id) => {
+      const [x0, y0, x1, y1] = box;
+      if (id === 'v') return { x1: cx, y1: y0 - e, x2: cx, y2: y1 + e };
+      if (id === 'h') return { x1: x0 - e, y1: cy, x2: x1 + e, y2: cy };
+      if (id === 'd1') return { x1: x0 - e, y1: y0 - e, x2: x1 + e, y2: y1 + e };
+      return { x1: x1 + e, y1: y0 - e, x2: x0 - e, y2: y1 + e };
+    };
+    const all = ['v', 'h', 'd1', 'd2'];
+    const non = all.filter((x) => !ax.includes(x));
+    const shape = (axes) => sh('custom', { points: pts, axes: axes.map(lineOf) });
+    const namesOf = (ids) => (ids.includes('d1') && ids.includes('d2') ? [...ids.filter((x) => x === 'v' || x === 'h').map((x) => axisName[x]), 'hai đường chéo'] : ids.map((x) => axisName[x]));
+    const wrongCounts = [0, 1, 2, 3, 4].filter((x) => x !== k);
+    const picked = shuffle(rng, wrongCounts).slice(0, 3);
+    const why = (w) => {
+      if (w === 0) return `Hãy thử gấp theo ${axisName[ax[0]]}: hai nửa trùng khít, nên hình vẫn có trục.`;
+      if (w > k) return non.length ? `Gấp theo ${axisName[non[0]]} thì hai nửa không trùng khít, nên chỉ có ${k} trục, không phải ${w}.` : `Thử gấp theo từng đường dọc, ngang, chéo: chỉ có ${k} đường làm hai nửa trùng khít, không phải ${w}.`;
+      return `Còn đường gấp khác cũng làm hai nửa trùng khít (${ax.map((x) => axisName[x]).join('; ')}), nên không chỉ có ${w} trục.`;
+    };
+    const correct = `${k} trục`;
+    const steps = [
+      { text: `Hình gốc là ${frame}, bị cắt bỏ ${idx.length === 4 ? 'cả bốn góc' : `${idx.length} góc`}. Ta thử gấp theo các đường dọc, ngang và chéo.`, visual: shape([]) },
+      { text: `Gấp theo ${listVi(namesOf(ax))}: hai nửa trùng khít. Có ${k} trục.`, visual: shape(ax), mark: 'good' },
+    ];
+    if (non.length) steps.push({ text: `Gấp theo ${listVi(namesOf(non))} thì hai nửa lệch nhau, không phải trục.`, visual: shape(non), mark: 'bad' });
+    steps.push({ text: `Vậy hình mới có ${k} trục đối xứng. Đáp án là ${correct}.` });
+    return {
+      id: 'g15.5', src: '[biến thể mới]', type: 'choice',
+      prompt: `${desc}, được hình như trong hình vẽ. Hình mới có bao nhiêu trục đối xứng?`,
+      visual: sh('custom', { points: pts }),
+      hint: 'Tưởng tượng gấp tờ giấy theo từng đường dọc, ngang và chéo.',
+      choices: mkChoices(rng, correct, picked.map((w) => ({ text: `${w} trục`, code: w > k ? 'QUY' : 'ĐẾM', why: why(w) }))),
+      explain: { steps },
+      meta: { points: pts, box },
+    };
+  },
+  solve(item) { return `${axesList(item.meta.points, item.meta.box).length} trục`; },
+};
+
+// g15.6: chọn tất cả các câu đúng về hình phẳng, đa giác, trục đối xứng — bài 15.4
+const BANK = {
+  plane: { t: 'Hình phẳng chỉ có chiều dài và chiều rộng.', f: ['Mọi hình phẳng đều có một góc vuông.', 'Hình phẳng có cả chiều dài, chiều rộng và chiều cao.'], w: ['Hình tròn là hình phẳng nhưng không có góc vuông nào.', 'Hình phẳng nằm trên mặt giấy, chỉ có chiều dài và chiều rộng.'], v: sh('circle') },
+  circ: { t: 'Hình tròn không phải là đa giác.', f: ['Hình tròn là đa giác vì nó khép kín.'], w: ['Đa giác phải có các cạnh thẳng. Đường viền hình tròn là đường cong.'], v: sh('circle') },
+  straight: { t: 'Đa giác chỉ có các cạnh thẳng.', f: ['Đa giác có từ 3 cạnh thẳng trở lên và có một cạnh cong.'], w: ['Đa giác chỉ có các cạnh thẳng. Hình có cạnh cong thì không phải đa giác.'], v: sh('pentagon') },
+  three: { t: 'Đa giác có từ 3 cạnh trở lên.', f: ['Đa giác có thể chỉ có 2 cạnh.'], w: ['Đa giác có từ 3 cạnh trở lên, ít nhất là tam giác.'], v: sh('triangle', { variant: 'equilateral' }) },
+  sq: { t: 'Hình vuông có 4 trục đối xứng.', f: ['Hình vuông chỉ có 2 trục đối xứng.'], w: ['Hình vuông còn có hai đường chéo cũng là trục: 2 + 2 = 4 trục.'], v: sh('square', { axes: ['all'] }) },
+  tri: { t: 'Tam giác đều có 3 trục đối xứng.', f: ['Tam giác đều chỉ có 1 trục đối xứng.'], w: ['Mỗi đỉnh của tam giác đều có một trục đi qua nó: 3 trục.'], v: sh('triangle', { variant: 'equilateral', axes: ['all'] }) },
+  diag: { t: 'Đường chéo của hình chữ nhật (không phải hình vuông) không phải là trục đối xứng.', f: ['Đường chéo của hình chữ nhật (không phải hình vuông) là trục đối xứng.'], w: ['Gấp theo đường chéo của hình chữ nhật, hai nửa không trùng khít.'], v: sh('rectangle', { axes: ['d1'] }) },
+  heart: { t: 'Trái tim không phải là đa giác.', f: ['Trái tim là đa giác.'], w: ['Trái tim có cạnh cong nên không phải đa giác.'], v: sh('heart') },
+  hex: { t: 'Lục giác đều có 6 trục đối xứng.', f: ['Lục giác đều có 3 trục đối xứng.'], w: ['Lục giác đều có 3 trục qua các đỉnh và 3 trục qua điểm chính giữa các cạnh: 6 trục.'], v: sh('hexagon', { axes: ['all'] }) },
+  rect: { t: 'Hình chữ nhật (không phải hình vuông) có 2 trục đối xứng.', f: ['Hình chữ nhật (không phải hình vuông) có 4 trục đối xứng.'], w: ['Hình chữ nhật chỉ có đường dọc và đường ngang là trục: 2 trục.'], v: sh('rectangle', { axes: ['v', 'h'] }) },
+  rhom: { t: 'Hình thoi là đa giác vì có 4 cạnh thẳng.', f: ['Hình thoi không phải là đa giác.'], w: ['Hình thoi có 4 cạnh thẳng nên là đa giác.'], v: sh('rhombus') },
+  axisdef: { t: 'Trục đối xứng là đường gấp để hai nửa trùng khít nhau.', f: ['Trục đối xứng là đường chia hình thành hai phần bất kì.'], w: ['Gấp theo trục đối xứng thì hai nửa phải trùng khít nhau.'], v: sh('rectangle', { axes: ['v'], fold: true }) },
+  circplane: { t: 'Hình tròn là hình phẳng.', f: ['Hình tròn không phải là hình phẳng.'], w: ['Hình tròn nằm trên mặt giấy, chỉ có chiều dài và chiều rộng, nên là hình phẳng.'], v: sh('circle') },
+  pent: { t: 'Ngũ giác đều có 5 trục đối xứng.', f: ['Ngũ giác đều chỉ có 1 trục đối xứng.'], w: ['Mỗi đỉnh của ngũ giác đều có một trục đi qua nó: 5 trục.'], v: sh('pentagon', { axes: ['all'] }) },
+};
+const BANK_KEYS = Object.keys(BANK);
+const g6 = {
+  id: 'g15.6', covers: ['15.4'],
+  make(rng) {
+    const nT = rng.next() < 0.6 ? 2 : 3;
+    const gs = shuffle(rng, BANK_KEYS).slice(0, 4);
+    const sel = gs.map((g, i) => {
+      const b = BANK[g];
+      if (i < nT) return { g, ok: true, text: b.t, why: null };
+      const j = int(rng, 0, b.f.length - 1);
+      return { g, ok: false, text: b.f[j], why: b.w[j] };
+    });
+    const prompt = pick(rng, ['Chọn TẤT CẢ các câu ĐÚNG.', 'Những câu nào dưới đây ĐÚNG? Chọn tất cả các câu đúng.']);
+    const rightOnes = sel.filter((x) => x.ok), wrongOnes = sel.filter((x) => !x.ok);
+    const steps = shuffle(rng, sel).map((x) => (x.ok
+      ? { text: `"${x.text}" là câu ĐÚNG.`, visual: BANK[x.g].v, mark: 'good' }
+      : { text: `"${x.text}" là câu SAI. ${x.why}`, visual: BANK[x.g].v, mark: 'bad' }));
+    steps.push({ text: `Vậy các câu đúng là: ${rightOnes.map((x) => `"${x.text}"`).join('; ')}.` });
+    return {
+      id: 'g15.6', src: '[biến thể mới]', type: 'multi',
+      prompt,
+      hint: 'Nhớ: đa giác chỉ có cạnh thẳng. Trục đối xứng là đường gấp cho hai nửa trùng khít.',
+      layout: 'list',
+      choices: shuffle(rng, sel).map((x) => (x.ok ? { text: x.text, correct: true } : { text: x.text, code: 'QUY', why: x.why })),
+      explain: { steps },
+      meta: { trueGroups: rightOnes.map((x) => x.g), nWrong: wrongOnes.length },
+    };
+  },
+  solve(item) { return item.meta.trueGroups.map((g) => BANK[g].t).sort().join(','); },
+};
+
+// g15.7: đa giác hay không phải đa giác — bài 15.5
+const POLYS = [
+  { id: 'tg', t: 'tam giác', s: sh('triangle', { variant: 'scalene' }) }, { id: 'vuong', t: 'hình vuông', s: sh('square') }, { id: 'cn', t: 'hình chữ nhật', s: sh('rectangle') },
+  { id: 'thoi', t: 'hình thoi', s: sh('rhombus') }, { id: 'thang', t: 'hình thang', s: sh('trapezoid') }, { id: 'bhanh', t: 'hình bình hành', s: sh('parallelogram') },
+  { id: 'ng', t: 'ngũ giác', s: sh('pentagon') }, { id: 'lg', t: 'lục giác', s: sh('hexagon') }, { id: 'bg', t: 'bát giác', s: sh('octagon') },
+  { id: 'nha', t: 'hình ngôi nhà', s: sh('house') }, { id: 'dieu', t: 'hình cái diều', s: sh('kite') }, { id: 'L', t: 'hình chữ L', s: sh('L') }, { id: 'sao', t: 'hình ngôi sao', s: sh('star') },
+];
+const NONPOLYS = [
+  { id: 'tron', t: 'hình tròn', s: sh('circle') }, { id: 'tim', t: 'trái tim', s: sh('heart') }, { id: 'nuatron', t: 'nửa hình tròn', s: null },
+  { id: 'bauduc', t: 'hình bầu dục', s: null }, { id: 'quat', t: 'hình quạt', s: null }, { id: 'giot', t: 'hình giọt nước', s: null },
+];
+const POLY_IDS = new Set(POLYS.map((p) => p.id));
+const g7 = {
+  id: 'g15.7', covers: ['15.5'],
+  make(rng) {
+    const nP = rng.next() < 0.55 ? 4 : 3;
+    const ps = shuffle(rng, POLYS).slice(0, nP), ns = shuffle(rng, NONPOLYS).slice(0, 6 - nP);
+    const chips = shuffle(rng, [...ps, ...ns]).map((x) => ({ id: x.id, text: x.t }));
+    const answer = {}; ps.forEach((x) => { answer[x.id] = 'dg'; }); ns.forEach((x) => { answer[x.id] = 'kdg'; });
+    const t = int(rng, 0, 2);
+    const prompt = t === 0 ? 'Hình nào là đa giác? Xếp mỗi hình vào đúng ô.' : t === 1 ? 'Phân loại các hình sau: đa giác hay không phải đa giác? Xếp mỗi hình vào đúng ô.' : 'Xếp mỗi hình vào đúng ô: là đa giác hoặc KHÔNG là đa giác.';
+    const nsVis = ns.find((x) => x.s);
+    return {
+      id: 'g15.7', src: '[biến thể mới]', type: 'classify',
+      prompt,
+      hint: 'Đa giác chỉ có các cạnh thẳng.',
+      chips, buckets: [{ id: 'dg', text: 'Là đa giác' }, { id: 'kdg', text: 'KHÔNG là đa giác' }], answer,
+      explain: {
+        steps: [
+          { text: 'Đa giác là hình phẳng chỉ có các cạnh THẲNG, từ 3 cạnh trở lên.', visual: ps[0].s },
+          { text: `${cap1(listVi(ps.map((x) => x.t)))} có toàn cạnh thẳng nên là đa giác.`, visual: ps[ps.length - 1].s, mark: 'good' },
+          { text: `${cap1(listVi(ns.map((x) => x.t)))} có cạnh cong nên KHÔNG là đa giác.`, ...(nsVis ? { visual: nsVis.s } : {}), mark: 'bad' },
+        ],
+      },
+      meta: { ids: [...ps, ...ns].map((x) => x.id) },
+    };
+  },
+  solve(item) { const o = {}; item.meta.ids.forEach((id) => { o[id] = POLY_IDS.has(id) ? 'dg' : 'kdg'; }); return o; },
+};
+
+// g15.8: ghép hai đa giác đều chung một cạnh — đếm cạnh (hoặc đỉnh) — bài 15.6
+const REG = { 3: ['tam giác đều', 'triangle'], 4: ['hình vuông', 'square'], 5: ['ngũ giác đều', 'pentagon'], 6: ['lục giác đều', 'hexagon'], 8: ['bát giác đều', 'octagon'] };
+const regFromEdge = (n) => { // đa giác đều cạnh 1 nằm phía trên cạnh PQ: P=(0,0), Q=(1,0); đỉnh P, Q, ... ngược chiều kim đồng hồ
+  const cx = 0.5, cy = 1 / (2 * Math.tan(Math.PI / n)), R = 1 / (2 * Math.sin(Math.PI / n)), a0 = Math.atan2(-cy, -cx);
+  return Array.from({ length: n }, (_, k) => [cx + R * Math.cos(a0 + k * 2 * Math.PI / n), cy + R * Math.sin(a0 + k * 2 * Math.PI / n)]);
+};
+function glue(n1, n2, rot90) {
+  const A = regFromEdge(n1), B = regFromEdge(n2).map(([x, y]) => [x, -y]);
+  let out = [...A.slice(2), A[0]];
+  for (let k = n2 - 1; k >= 2; k--) out.push(B[k]);
+  out.push(A[1]);
+  out = out.map(([x, y]) => [x, -y]); // y hướng xuống như màn hình
+  if (rot90) out = out.map(([x, y]) => [-y, x]);
+  const xs = out.map((p) => p[0]), ys = out.map((p) => p[1]);
+  const w = Math.max(...xs) - Math.min(...xs), h = Math.max(...ys) - Math.min(...ys), s = Math.min(88 / w, 88 / h);
+  const mx = (Math.max(...xs) + Math.min(...xs)) / 2, my = (Math.max(...ys) + Math.min(...ys)) / 2;
+  return out.map(([x, y]) => [+(50 + (x - mx) * s).toFixed(2), +(50 + (y - my) * s).toFixed(2)]);
+}
+const PAIRS = []; [3, 4, 5, 6, 8].forEach((a) => [3, 4, 5, 6, 8].forEach((b) => { if (!((a - 2) * b + (b - 2) * a === a * b)) PAIRS.push([a, b]); }));
+const sidesOf = (n1, n2) => n1 + n2 - 2 - ((n1 - 2) * n2 + (n2 - 2) * n1 === n1 * n2 ? 2 : 0);
+const g8 = {
+  id: 'g15.8', covers: ['15.6'],
+  make(rng) {
+    const [n1, n2] = pick(rng, PAIRS);
+    const askV = rng.next() < 0.35;
+    const w = askV ? 'đỉnh' : 'cạnh';
+    const total = n1 + n2, r = total - 2;
+    const pts = glue(n1, n2, rng.next() < 0.5);
+    const [N1, N2] = [REG[n1][0], REG[n2][0]];
+    const same = n1 === n2;
+    const t = int(rng, 0, 2);
+    const prompt = t === 0 ? `Ghép một ${N1} với một ${N2} có cạnh bằng nhau, chung một cạnh (xem hình). Hình mới có bao nhiêu ${w}?`
+      : t === 1 ? `${pick(rng, NAMES)} ghép ${same ? `hai ${N1}` : `một ${N1} và một ${N2}`} có cạnh bằng nhau, chung một cạnh, được hình như trong hình vẽ. Đường viền ngoài của hình mới có bao nhiêu ${w}?`
+        : `Hai hình ${same ? `đều là ${N1}` : `là ${N1} và ${N2}`}, cạnh bằng nhau, được ghép chung một cạnh (xem hình). Hình mới có bao nhiêu ${w}?`;
+    const correct = `${r} ${w}`;
+    const down = r - 1 >= 3 ? r - 1 : r + 1;
+    return {
+      id: 'g15.8', src: '[biến thể mới]', type: 'choice',
+      prompt,
+      visual: sh('custom', { points: pts }),
+      hint: askV ? 'Hai đỉnh nằm trên cạnh chung được tính chung cho cả hai hình.' : 'Con chỉ đếm các cạnh trên đường viền ngoài.',
+      choices: mkChoices(rng, correct, [
+        { text: `${total} ${w}`, code: 'QUY', why: askV ? `${n1} + ${n2} = ${total}, nhưng hai đỉnh ở đầu cạnh chung bị tính hai lần: ${total} − 2 = ${r}.` : `${n1} + ${n2} = ${total}, nhưng cạnh chung bị che mất, không còn nằm trên đường viền: mỗi hình mất 1 cạnh, ${total} − 2 = ${r}.` },
+        { text: `${total - 1} ${w}`, code: 'ĐẾM', why: `Hãy đếm lại ${askV ? 'các đỉnh' : 'các đoạn'} trên đường viền ngoài: chỉ có ${r}.` },
+        { text: `${r + 2 === total ? down : r + 2} ${w}`, code: 'ĐẾM', why: `Hãy đếm lại ${askV ? 'các đỉnh' : 'các đoạn'} trên đường viền ngoài: có ${r}, không phải số này.` },
+      ]),
+      explain: {
+        steps: [
+          { text: `${cap1(N1)} có ${n1} ${askV ? 'đỉnh' : 'cạnh'}, ${N2} có ${n2} ${askV ? 'đỉnh' : 'cạnh'}: ${n1} + ${n2} = ${total}.`, visual: sh(REG[n1][1]) },
+          { text: askV ? `Hai hình chung một cạnh nên hai đỉnh ở đầu cạnh chung bị tính hai lần. Bớt đi 2: ${total} − 2 = ${r}.` : `Hai hình chung một cạnh. Cạnh chung ở bên trong nên không còn trên đường viền. Mỗi hình mất 1 cạnh, nên ${total} − 2 = ${r}.`, visual: sh('custom', { points: pts }) },
+          { text: `Đếm đường viền ngoài của hình mới: ${r} ${w}. Đáp án là ${correct}.`, visual: sh('custom', { points: pts }) },
+        ],
+      },
+      meta: { n1, n2, w },
+    };
+  },
+  solve(item) { const { n1, n2, w } = item.meta; return `${sidesOf(n1, n2)} ${w}`; },
 };
 
 // ---------- chủ đề ----------
@@ -302,5 +590,5 @@ export default {
     },
   },
 
-  generators: [g1, g2, g3],
+  generators: [g1, g2, g3, g4, g5, g6, g7, g8],
 };

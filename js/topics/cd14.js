@@ -16,36 +16,53 @@ function mkChoices(rng, correctText, wrongs) {
   return shuffle(rng, [{ text: correctText, correct: true }, ...ws]);
 }
 
+// ---------- ngữ cảnh dùng chung cho bộ sinh ----------
+const NAMES = ['An', 'Bình', 'Chi', 'Dũng', 'Hà', 'Lan', 'Minh', 'Nam', 'Mai', 'Phúc', 'Quân', 'Thu'];
+const LETTERS = ['A', 'B', 'C', 'D', 'M', 'N', 'P', 'Q'];
+const R = (a, b, step = 1) => { const o = []; for (let x = a; x <= b; x += step) o.push(x); return o; };
+const cap1 = (s) => s[0].toUpperCase() + s.slice(1);
+const cmpWord = (d) => (d < 90 ? 'bé hơn' : d === 90 ? 'đúng bằng' : 'lớn hơn');
+const sqSpec = (d) => (d === 90 ? { show: 'square' } : {});
+// danh sách "a, b và c"
+const listVi = (a) => (a.length <= 1 ? a.join('') : a.slice(0, -1).join(', ') + ' và ' + a[a.length - 1]);
+
 // ---------- bộ sinh ----------
 // g14.1: phân loại 1 góc đã cho số đo
 const g1 = {
   id: 'g14.1',
   make(rng) {
     const r = int(rng, 1, 6);
+    const trap = rng.next() < 0.3;
     let d;
     if (r === 1) d = 90;
-    else if (r <= 3) d = int(rng, 4, 17) * 5 + (rng.next() < 0.3 ? 3 : 0); // nhọn
-    else d = int(rng, 19, 33) * 5 + (rng.next() < 0.3 ? 2 : 0); // tù
+    else if (r <= 3) d = trap ? int(rng, 76, 89) : int(rng, 12, 72); // nhọn
+    else d = trap ? int(rng, 91, 106) : int(rng, 108, 168); // tù
+    const L = pick(rng, LETTERS);
+    const name = pick(rng, NAMES);
     const kind = kindOf(d);
     const correct = kindText(d);
-    const cmpTxt = d < 90 ? 'bé hơn' : d === 90 ? 'đúng bằng' : 'lớn hơn';
+    const cmpTxt = cmpWord(d);
     const whyFor = (k) => {
       if (k === 'nhọn') return `Góc nhọn phải bé hơn 90°. ${d}° ${cmpTxt} 90°.`;
       if (k === 'vuông') return `Chỉ góc đúng 90° mới là góc vuông. ${d}° ${cmpTxt} 90°${Math.abs(d - 90) <= 15 ? ', dù nhìn có vẻ gần' : ''}.`;
       return `Góc tù phải lớn hơn 90°. ${d}° ${cmpTxt} 90°.`;
     };
     const wrongs = ['nhọn', 'vuông', 'tù'].filter((k) => k !== kind).map((k) => ({ text: `góc ${k}`, code: 'QUY', why: whyFor(k) }));
+    const t = int(rng, 0, 2);
+    const prompt = t === 0 ? `Góc ${L} có số đo ${d}° (xem hình). Đây là góc gì?`
+      : t === 1 ? `${name} đo góc ${L} bằng thước đo độ và được ${d}°. Góc ${L} là góc gì?`
+        : `Góc ${L} trong hình có số đo ${d}°. Con hãy cho biết đó là góc nhọn, góc vuông hay góc tù?`;
     return {
       id: 'g14.1', src: '[biến thể mới]', type: 'choice',
-      prompt: `Góc A có số đo ${d}° (xem hình). Đây là góc gì?`,
-      visual: ang(d, { label: 'A' }),
+      prompt,
+      visual: ang(d, { label: L, ...sqSpec(d) }),
       hint: 'So số đo với mốc 90° (góc vuông).',
       choices: mkChoices(rng, correct, wrongs),
       explain: {
         steps: [
           { text: 'Mốc để so sánh là góc vuông 90°. Bé hơn 90° là nhọn, lớn hơn 90° là tù.', visual: cmp([{ label: 'nhọn', deg: 50 }, { label: 'vuông', deg: 90 }, { label: 'tù', deg: 130 }], { name: true }) },
-          { text: `${d}° ${d < 90 ? 'bé hơn' : d === 90 ? 'đúng bằng' : 'lớn hơn'} 90°.`, visual: ang(d, { label: 'A', anim: 'open' }) },
-          { text: `Vậy góc A là ${correct}. Đáp án là ${correct}.`, visual: ang(d, { label: 'A', name: true }) },
+          { text: `${d}° ${cmpTxt} 90°.`, visual: ang(d, { label: L, anim: 'open' }) },
+          { text: `Vậy góc ${L} là ${correct}. Đáp án là ${correct}.`, visual: ang(d, { label: L, name: true }) },
         ],
       },
       meta: { d },
@@ -54,17 +71,16 @@ const g1 = {
   solve(item) { return kindText(item.meta.d); },
 };
 
-// g14.2: xếp thứ tự các góc
+// g14.2: xếp thứ tự các góc — bài 14.3
 const g2 = {
-  id: 'g14.2',
+  id: 'g14.2', covers: ['14.3'],
   make(rng) {
-    const count = int(rng, 4, 5);
-    const degs = rng.next() < 0.5 ? [90] : [];
-    while (degs.length < count) {
-      const d = int(rng, 6, 34) * 5; // 30..170
-      if (degs.every((x) => Math.abs(x - d) >= 10)) degs.push(d);
-    }
-    const list = degs;
+    const count = rng.next() < 0.6 ? 5 : 4;
+    const list = [];
+    const okAdd = (d) => list.every((x) => Math.abs(x - d) >= 10);
+    if (rng.next() < 0.5) list.push(90);
+    if (rng.next() < 0.7) { for (let k = 0; k < 20 && list.length < 2; k++) { const t = rng.next() < 0.5 ? int(rng, 76, 88) : int(rng, 92, 106); if (okAdd(t)) list.push(t); } }
+    while (list.length < count) { const d = int(rng, 20, 170); if (okAdd(d)) list.push(d); }
     const desc = rng.next() < 0.5;
     const sorted = list.slice().sort((a, b) => (desc ? b - a : a - b));
     const answer = sorted.map((d) => 'a' + d);
@@ -72,17 +88,26 @@ const g2 = {
     do { chips = shuffle(rng, list).map((d) => ({ id: 'a' + d, text: `Góc ${d}°` })); } while (chips.map((c) => c.id).join() === answer.join());
     const asc = list.slice().sort((a, b) => (desc ? a - b : b - a)).map((d) => 'a' + d);
     const bigSmall = sorted.map((d) => `${d}°`).join(', ');
+    const wrongHints = [{ match: asc, code: 'ĐỌC', why: `Đề yêu cầu xếp từ ${desc ? 'LỚN đến BÉ' : 'BÉ đến LỚN'}. Có thể con đã xếp ngược lại.` }];
+    const i90 = sorted.indexOf(90);
+    if (i90 >= 0 && i90 < sorted.length - 1) {
+      const sw = sorted.slice(); [sw[i90], sw[i90 + 1]] = [sw[i90 + 1], sw[i90]];
+      const o = sw[i90];
+      wrongHints.push({ match: sw.map((d) => 'a' + d), code: 'QUY', why: `${Math.min(o, 90)}° bé hơn ${Math.max(o, 90)}°, nên phải đứng đúng chỗ: ${bigSmall}.` });
+    }
+    const sortedAsc = list.slice().sort((a, b) => a - b);
+    const nh = sortedAsc.filter((d) => d < 90), tu = sortedAsc.filter((d) => d > 90);
     return {
       id: 'g14.2', src: '[biến thể mới]', type: 'order',
-      prompt: desc ? 'Xếp các góc theo độ lớn từ LỚN đến BÉ (chạm góc lớn nhất trước).' : 'Xếp các góc theo độ lớn từ BÉ đến LỚN (chạm góc bé nhất trước).',
-      visual: cmp(list.slice().sort((a, b) => a - b).map((d) => ({ label: `${d}°`, deg: d }))),
+      prompt: desc ? `Xếp ${count} góc theo độ lớn từ LỚN đến BÉ (chạm góc lớn nhất trước).` : `Xếp ${count} góc theo độ lớn từ BÉ đến LỚN (chạm góc bé nhất trước).`,
+      visual: cmp(sortedAsc.map((d) => ({ label: `${d}°`, deg: d }))),
       hint: desc ? 'Góc tù lớn hơn góc vuông, góc vuông lớn hơn góc nhọn.' : 'Góc nhọn bé hơn góc vuông, góc vuông bé hơn góc tù.',
       items: chips,
       answer,
-      wrongHints: [{ match: asc, code: 'ĐỌC', why: `Đề yêu cầu xếp từ ${desc ? 'LỚN đến BÉ' : 'BÉ đến LỚN'}. Có thể con đã xếp ngược lại.` }],
+      wrongHints,
       explain: {
         steps: [
-          { text: 'Phân loại trước: số đo bé hơn 90° là nhọn, lớn hơn 90° là tù (đúng 90° là vuông).', visual: cmp(list.slice().sort((a, b) => a - b).map((d) => ({ label: `${d}°`, deg: d })), { name: true }) },
+          { text: `Phân loại trước: ${nh.length ? `${listVi(nh.map((d) => d + '°'))} bé hơn 90° là góc nhọn` : 'không có góc nhọn'}${tu.length ? `; ${listVi(tu.map((d) => d + '°'))} lớn hơn 90° là góc tù` : ''}${list.includes(90) ? '; 90° là góc vuông' : ''}.`, visual: cmp(sortedAsc.map((d) => ({ label: `${d}°`, deg: d })), { name: true }) },
           { text: `So sánh số đo, xếp ${desc ? 'từ lớn đến bé' : 'từ bé đến lớn'}: ${bigSmall}.` },
           { text: `Đáp án là ${bigSmall}.` },
         ],
@@ -96,12 +121,13 @@ const g2 = {
   },
 };
 
-// g14.3: ước lượng số đo của góc vẽ
+// g14.3: ước lượng số đo của góc vẽ — bài 14.2
 const g3 = {
-  id: 'g14.3',
+  id: 'g14.3', covers: ['14.2'],
   make(rng) {
     const acute = rng.next() < 0.5;
     const d = acute ? int(rng, 5, 14) * 5 : int(rng, 22, 31) * 5; // 25..70 hoặc 110..155
+    const L = pick(rng, LETTERS);
     const cand = [];
     for (let c = 15; c <= 170; c += 5) {
       if (Math.abs(c - d) >= 30 && c !== 90) cand.push(c);
@@ -111,14 +137,14 @@ const g3 = {
     const b = pick(rng, cand2);
     const why = (c) => {
       const same = kindOf(c) === kindOf(d);
-      if (!same) return `${c}° là góc ${kindOf(c)}, nhưng góc A trong hình là góc ${kindOf(d)}.`;
-      return c > d ? `${c}° mở rộng hơn góc A trong hình.` : `${c}° mở hẹp hơn góc A trong hình.`;
+      if (!same) return `${c}° là góc ${kindOf(c)}, nhưng góc ${L} trong hình là góc ${kindOf(d)}.`;
+      return c > d ? `${c}° mở rộng hơn góc ${L} trong hình.` : `${c}° mở hẹp hơn góc ${L} trong hình.`;
     };
     const correct = `${d}°`;
     return {
       id: 'g14.3', src: '[biến thể mới]', type: 'choice',
-      prompt: `Góc A trong hình là góc ${kindOf(d)}. Số đo nào hợp lí nhất?`,
-      visual: ang(d, { label: 'A' }),
+      prompt: `Góc ${L} trong hình là góc ${kindOf(d)}. Số đo nào hợp lí nhất?`,
+      visual: ang(d, { label: L }),
       hint: 'So với các mốc 45°, 90°, 135°.',
       choices: mkChoices(rng, correct, [
         { text: `${a}°`, code: 'QUY', why: why(a) },
@@ -126,8 +152,8 @@ const g3 = {
       ]),
       explain: {
         steps: [
-          { text: `Góc A là góc ${kindOf(d)}: ${acute ? 'bé hơn 90°' : 'lớn hơn 90°'}. Loại các số không hợp.`, visual: cmp([{ label: '45°', deg: 45 }, { label: '90°', deg: 90 }, { label: '135°', deg: 135 }]) },
-          { text: `Góc A mở ${acute ? 'hẹp' : 'rộng'} gần như ${d}°.`, visual: ang(d, { label: 'A', anim: 'open' }) },
+          { text: `Góc ${L} là góc ${kindOf(d)}: ${acute ? 'bé hơn 90°' : 'lớn hơn 90°'}. Loại các số không hợp.`, visual: cmp([{ label: '45°', deg: 45 }, { label: '90°', deg: 90 }, { label: '135°', deg: 135 }]) },
+          { text: `Góc ${L} mở ${acute ? 'hẹp' : 'rộng'} gần như ${d}°.`, visual: ang(d, { label: L, anim: 'open' }) },
           { text: `Đáp án là ${correct}.` },
         ],
       },
@@ -145,19 +171,24 @@ const g4 = {
     const n = Math.min(h, 12 - h); // số "giờ" giữa hai kim, lấy phía ngắn
     const d = n * 30;
     const correct = kindText(d);
-    const whyFor = (k) => `Mỗi khoảng giờ là 30°: ${n} khoảng giờ là ${n} × 30° = ${d}°. ${d}° ${d < 90 ? 'bé hơn' : d === 90 ? 'bằng' : 'lớn hơn'} 90° nên đây là góc ${kindOf(d)}, không phải góc ${k}.`;
+    const name = pick(rng, NAMES);
+    const whyFor = (k) => `Mỗi khoảng giờ là 30°: ${n} khoảng giờ là ${n} × 30° = ${d}°. ${d}° ${cmpWord(d)} 90° nên đây là góc ${kindOf(d)}, không phải góc ${k}.`;
     const wrongs = ['nhọn', 'vuông', 'tù'].filter((k) => k !== kindOf(d)).map((k) => ({ text: `góc ${k}`, code: 'QUY', why: whyFor(k) }));
+    const t = int(rng, 0, 2);
+    const prompt = t === 0 ? `Lúc ${h} giờ đúng, hai kim đồng hồ tạo thành một góc (lấy góc nhỏ). Đó là góc gì? (Mỗi khoảng giờ trên đồng hồ là 30°.)`
+      : t === 1 ? `${name} nhìn đồng hồ lúc ${h} giờ đúng. Hai kim tạo thành góc nhỏ gì? (Mỗi khoảng giờ trên đồng hồ là 30°.)`
+        : `Đồng hồ chỉ ${h} giờ đúng. Góc nhỏ giữa kim giờ và kim phút là góc nhọn, góc vuông hay góc tù? (Mỗi khoảng giờ là 30°.)`;
     return {
       id: 'g14.4', src: '[biến thể mới]', type: 'choice',
-      prompt: `Lúc ${h} giờ đúng, hai kim đồng hồ tạo thành một góc (lấy góc nhỏ). Đó là góc gì? (Mỗi khoảng giờ trên đồng hồ là 30°.)`,
+      prompt,
       visual: { kind: 'clock', h, m: 0 },
       hint: 'Kim phút chỉ số 12. Đếm số giờ giữa hai kim theo đường ngắn.',
       choices: mkChoices(rng, correct, wrongs),
       explain: {
         steps: [
           { text: `Kim phút chỉ số 12, kim giờ chỉ số ${h}. Đi đường ngắn giữa hai kim có ${n} khoảng giờ.`, visual: { kind: 'clock', h, m: 0 } },
-          { text: `Mỗi khoảng giờ là 30°, nên góc là ${n} × 30° = ${d}°.`, visual: ang(d, { label: 'O', anim: 'open' }) },
-          { text: `${d}° ${d < 90 ? 'bé hơn' : d === 90 ? 'bằng' : 'lớn hơn'} 90°. Đáp án là ${correct}.`, visual: ang(d, { label: 'O', name: true }) },
+          { text: `Mỗi khoảng giờ là 30°, nên góc là ${n} × 30° = ${d}°.`, visual: ang(d, { label: 'O', anim: 'open', ...sqSpec(d) }) },
+          { text: `${d}° ${cmpWord(d)} 90°. Đáp án là ${correct}.`, visual: ang(d, { label: 'O', name: true }) },
         ],
       },
       meta: { h },
@@ -167,6 +198,295 @@ const g4 = {
     const h = item.meta.h;
     const d = (h <= 6 ? h : 12 - h) * 30;
     return d < 90 ? 'góc nhọn' : d === 90 ? 'góc vuông' : 'góc tù';
+  },
+};
+
+// g14.5: phân loại nhiều góc vào 3 ô — bài 14.1
+const BUCKETS = [{ id: 'nhon', text: 'Góc nhọn' }, { id: 'vuong', text: 'Góc vuông' }, { id: 'tu', text: 'Góc tù' }];
+const bucketOf = (d) => (d < 90 ? 'nhon' : d === 90 ? 'vuong' : 'tu');
+const g5 = {
+  id: 'g14.5', covers: ['14.1'],
+  make(rng) {
+    const withRight = rng.next() < 0.8;
+    const [na, no] = withRight ? pick(rng, [[2, 2], [1, 3], [3, 1], [2, 2]]) : pick(rng, [[2, 3], [3, 2]]);
+    const degs = withRight ? [90] : [];
+    const free = (d) => degs.every((x) => Math.abs(x - d) >= 5);
+    const trapAcute = rng.next() < 0.5;
+    // một góc "bẫy" gần 90°
+    for (let k = 0; k < 30; k++) { const t = trapAcute ? int(rng, 76, 89) : int(rng, 91, 106); if (free(t)) { degs.push(t); break; } }
+    const need = (kind) => degs.filter((d) => bucketOf(d) === kind).length;
+    const add = (kind, lo, hi, total) => { for (let k = 0; k < 200 && need(kind) < total; k++) { const d = int(rng, lo, hi); if (free(d)) degs.push(d); } };
+    add('nhon', 15, 72, na);
+    add('tu', 108, 168, no);
+    const sortedAsc = degs.slice().sort((a, b) => a - b);
+    const chips = shuffle(rng, degs).map((d) => ({ id: 'a' + d, text: `${d}°` }));
+    const answer = {}; degs.forEach((d) => { answer['a' + d] = bucketOf(d); });
+    const name = pick(rng, NAMES);
+    const t = int(rng, 0, 2);
+    const prompt = t === 0 ? 'Xếp mỗi góc vào đúng ô: góc nhọn, góc vuông hay góc tù.'
+      : t === 1 ? `${name} đo được các góc như hình. Hãy xếp mỗi góc vào đúng loại.`
+        : 'Mỗi góc dưới đây thuộc loại nào? Xếp vào đúng ô.';
+    const nh = sortedAsc.filter((d) => d < 90), tu = sortedAsc.filter((d) => d > 90), vu = sortedAsc.filter((d) => d === 90);
+    const steps = [
+      { text: 'Nhớ mốc 90°: bé hơn 90° là nhọn, đúng 90° là vuông, lớn hơn 90° là tù.', visual: cmp([{ label: 'nhọn', deg: 50 }, { label: 'vuông', deg: 90 }, { label: 'tù', deg: 130 }], { name: true }) },
+    ];
+    if (nh.length) steps.push({ text: `${listVi(nh.map((d) => d + '°'))} đều bé hơn 90° nên là góc nhọn.${nh.some((d) => d >= 76) ? ` Dù ${nh[nh.length - 1]}° trông gần vuông, nó vẫn bé hơn 90°.` : ''}`, visual: cmp(nh.map((d) => ({ label: `${d}°`, deg: d }))), mark: 'good' });
+    if (tu.length) steps.push({ text: `${listVi(tu.map((d) => d + '°'))} đều lớn hơn 90° nên là góc tù.${tu.some((d) => d <= 106) ? ` ${tu[0]}° chỉ hơn 90° một chút nhưng vẫn là góc tù.` : ''}`, visual: cmp(tu.map((d) => ({ label: `${d}°`, deg: d }))) });
+    steps.push({ text: vu.length ? 'Chỉ có 90° là góc vuông. Vậy các góc đã xếp xong.' : 'Trong các góc này không có góc nào đúng 90°, nên ô góc vuông để trống.' });
+    return {
+      id: 'g14.5', src: '[biến thể mới]', type: 'classify',
+      prompt,
+      visual: cmp(sortedAsc.map((d) => ({ label: `${d}°`, deg: d }))),
+      hint: 'So từng số với 90°.',
+      chips, buckets: BUCKETS, answer,
+      explain: { steps },
+      meta: { degs },
+    };
+  },
+  solve(item) { const o = {}; item.meta.degs.forEach((d) => { o['a' + d] = bucketOf(d); }); return o; },
+};
+
+// g14.6: chọn số đo hợp lí cho hai góc (A, B) cho trước loại — bài 14.2
+const PAIR_KINDS = [['tù', 'nhọn'], ['nhọn', 'tù'], ['vuông', 'nhọn'], ['tù', 'vuông'], ['nhọn', 'vuông']];
+const LETTER_PAIRS = [['A', 'B'], ['M', 'N'], ['P', 'Q'], ['X', 'Y']];
+const degOfKind = (rng, k) => (k === 'nhọn' ? int(rng, 6, 15) * 5 : k === 'tù' ? int(rng, 21, 32) * 5 : 90);
+function wrongsFor(rng, k, d, L) {
+  if (k === 'vuông') {
+    return {
+      far: { c: 80, why: `Góc ${L} là góc vuông nên phải đúng 90°. 80° bé hơn 90°.` },
+      cross: { c: 100, why: `Góc ${L} là góc vuông nên phải đúng 90°. 100° lớn hơn 90°.` },
+    };
+  }
+  const range = k === 'nhọn' ? R(15, 80, 5) : R(100, 175, 5);
+  const far = pick(rng, range.filter((c) => Math.abs(c - d) >= 35));
+  const crossRange = k === 'nhọn' ? [105, 115, 125, 135, 145] : [35, 45, 55, 65];
+  const cross = pick(rng, crossRange);
+  return {
+    far: { c: far, why: far > d ? `${far}° mở rộng hơn nhiều so với góc ${L} trong hình.` : `${far}° mở hẹp hơn nhiều so với góc ${L} trong hình.` },
+    cross: { c: cross, why: `${cross}° là góc ${kindOf(cross)}, nhưng góc ${L} là góc ${k}.` },
+  };
+}
+const g6 = {
+  id: 'g14.6', covers: ['14.2'],
+  make(rng) {
+    const [kA, kB] = pick(rng, PAIR_KINDS);
+    const [LA, LB] = pick(rng, LETTER_PAIRS);
+    const dA = degOfKind(rng, kA), dB = degOfKind(rng, kB);
+    const wA = wrongsFor(rng, kA, dA, LA), wB = wrongsFor(rng, kB, dB, LB);
+    const txt = (a, b) => `${LA} = ${a}°, ${LB} = ${b}°`;
+    const correct = txt(dA, dB);
+    const wrongs = [
+      { text: txt(wA.far.c, dB), code: 'QUY', why: wA.far.why },
+      { text: txt(dA, wB.far.c), code: 'QUY', why: wB.far.why },
+      kA !== 'vuông' ? { text: txt(wA.cross.c, dB), code: 'QUY', why: wA.cross.why } : { text: txt(dA, wB.cross.c), code: 'QUY', why: wB.cross.why },
+      kA !== 'vuông' && kB !== 'vuông' ? { text: txt(dA, wB.cross.c), code: 'QUY', why: wB.cross.why } : { text: txt(wA.cross.c, dB), code: 'QUY', why: wA.cross.why },
+    ];
+    return {
+      id: 'g14.6', src: '[biến thể mới]', type: 'choice',
+      prompt: `Hình vẽ có hai góc: ${LA} là góc ${kA}, ${LB} là góc ${kB}. Chọn số đo hợp lí cho từng góc.`,
+      visual: cmp([{ label: LA, deg: dA, ...sqSpec(dA) }, { label: LB, deg: dB, ...sqSpec(dB) }]),
+      hint: 'So hai góc với góc vuông 90°, rồi với các mốc 45° và 135°.',
+      layout: 'list',
+      choices: mkChoices(rng, correct, wrongs),
+      explain: {
+        steps: [
+          { text: `So với 90°: góc ${LA} là góc ${kA}, góc ${LB} là góc ${kB}.`, visual: cmp([{ label: LA, deg: dA, ...sqSpec(dA) }, { label: LB, deg: dB, ...sqSpec(dB) }], { name: true }) },
+          { text: `Góc ${LA} mở ${kA === 'nhọn' ? 'hẹp hơn' : kA === 'tù' ? 'rộng hơn' : 'đúng bằng'} góc vuông, hợp với ${dA}°.`, visual: ang(dA, { label: LA, ...sqSpec(dA) }) },
+          { text: `Góc ${LB} mở ${kB === 'nhọn' ? 'hẹp hơn' : kB === 'tù' ? 'rộng hơn' : 'đúng bằng'} góc vuông, hợp với ${dB}°.`, visual: ang(dB, { label: LB, ...sqSpec(dB) }) },
+          { text: `Đáp án là ${correct}.` },
+        ],
+      },
+      meta: { LA, LB, dA, dB },
+    };
+  },
+  solve(item) { const { LA, LB, dA, dB } = item.meta; return `${LA} = ${dA}°, ${LB} = ${dB}°`; },
+};
+
+// g14.7: Đúng/Sai — bạn đoán số đo góc — bài 14.4
+const g7 = {
+  id: 'g14.7', covers: ['14.4'],
+  make(rng) {
+    const acute = rng.next() < 0.5;
+    const d = acute ? int(rng, 5, 14) * 5 : int(rng, 22, 31) * 5;
+    const L = pick(rng, LETTERS);
+    const name = pick(rng, NAMES);
+    const good = rng.next() < 0.5;
+    const crossFalse = rng.next() < 0.45;
+    let g;
+    if (good) {
+      do { g = d + pick(rng, [-10, -5, 5, 10]); } while (kindOf(g) !== kindOf(d));
+    } else if (crossFalse) {
+      g = acute ? pick(rng, [105, 115, 125, 135, 150, 160]) : pick(rng, [20, 30, 40, 50, 60, 70]);
+    } else {
+      const range = acute ? R(15, 80, 5) : R(100, 175, 5);
+      g = pick(rng, range.filter((c) => Math.abs(c - d) >= 35));
+    }
+    const kd = kindOf(d), kg = kindOf(g);
+    const ans = Math.abs(g - d) <= 10 && kd === kg;
+    const reasonRight = good
+      ? `Góc ${L} là góc ${kd} và mở rộng gần bằng ${g}°.`
+      : kd !== kg ? `Góc ${L} là góc ${kd}, còn ${g}° là góc ${kg}.` : `${g}° mở ${g > d ? 'rộng' : 'hẹp'} hơn nhiều so với góc ${L} trong hình.`;
+    const reasons = shuffle(rng, [
+      { text: reasonRight, correct: true },
+      { text: `Hai cạnh của góc ${L} dài nên góc phải to.`, correct: false, code: 'QUY', why: 'Cạnh dài hay ngắn không làm góc to hơn. Chỉ độ mở giữa hai cạnh mới quyết định.' },
+      { text: `Vì ${g}° là số đo của một góc thật, nên đoán thế nào cũng hợp lí.`, correct: false, code: 'QUY', why: 'Số đo hợp lí phải hợp với độ mở của góc trong hình, không phải số đo nào cũng được.' },
+    ]);
+    const t = int(rng, 0, 1);
+    return {
+      id: 'g14.7', src: '[biến thể mới]', type: 'tf',
+      prompt: (t === 0 ? `${name} nhìn góc ${L} trong hình và đoán góc đó khoảng ${g}°. ${name} đoán như vậy có hợp lí không?` : `Trong hình có góc ${L}. ${name} nói: "Góc ${L} khoảng ${g}°." Lời của ${name} có hợp lí không?`) + ' Chọn ĐÚNG hoặc SAI.',
+      visual: ang(d, { label: L }),
+      hint: `So góc ${L} với góc vuông, rồi với các mốc 45° và 135°.`,
+      answer: ans,
+      reasons,
+      whyWrong: ans ? `${g}° gần với độ mở của góc ${L} (${kd}), nên đoán như vậy là hợp lí.` : `Ước lượng ${g}° chưa hợp lí: góc ${L} là góc ${kd}, mở khoảng ${d}°.`,
+      explain: {
+        steps: [
+          { text: `Góc ${L} ${d < 90 ? 'bé hơn' : 'lớn hơn'} 90°, nên là góc ${kd}.`, visual: cmp([{ label: L, deg: d }, { label: '90°', deg: 90 }]) },
+          { text: ans ? `Góc ${L} mở khoảng ${d}°, còn ${g}° rất gần như vậy.` : kd !== kg ? `${g}° là góc ${kg}, mở khác hẳn góc ${L}.` : `${g}° ${g > d ? 'rộng' : 'hẹp'} hơn nhiều: góc ${L} chỉ khoảng ${d}°.`, visual: cmp([{ label: L, deg: d }, { label: `${g}°`, deg: g }]), mark: ans ? 'good' : 'bad' },
+          { text: ans ? `Vậy ${name} đoán hợp lí, câu này ĐÚNG.` : `Vậy ${name} đoán chưa hợp lí, câu này SAI. Số hợp lí hơn là khoảng ${d}°.` },
+        ],
+      },
+      meta: { d, g },
+    };
+  },
+  solve(item) { const { d, g } = item.meta; return String(Math.abs(g - d) <= 10 && kindOf(g) === kindOf(d)); },
+};
+
+// g14.8: nối góc với số đo — bài 14.5
+const MATCH_POOL = [25, 30, 40, 45, 55, 60, 70, 75, 90, 105, 110, 120, 130, 135, 145, 150, 160];
+const g8 = {
+  id: 'g14.8', covers: ['14.5'],
+  make(rng) {
+    let degs;
+    for (let k = 0; k < 200; k++) {
+      const cand = shuffle(rng, MATCH_POOL).slice(0, 5);
+      const ok = cand.every((a, i) => cand.every((b, j) => i === j || Math.abs(a - b) >= 20));
+      if (ok) { degs = cand; break; }
+    }
+    if (!degs) degs = [30, 60, 90, 120, 150];
+    const [LA] = [pick(rng, LETTER_SETS4)];
+    const lefts = degs.slice(0, 4);
+    const dist = degs[4];
+    const left = lefts.map((d, i) => ({ id: LA[i], text: `Góc ${LA[i]}`, visual: ang(d, sqSpec(d)) }));
+    const right = shuffle(rng, degs.map((d) => ({ id: 'r' + d, text: `${d}°` })));
+    const pairs = {}; lefts.forEach((d, i) => { pairs[LA[i]] = 'r' + d; });
+    const sortedList = degs.slice().sort((a, b) => a - b).map((d) => `${d}°`).join(', ');
+    const nhs = lefts.map((d, i) => ({ d, L: LA[i] })).filter((x) => x.d < 90).sort((a, b) => a.d - b.d);
+    const tus = lefts.map((d, i) => ({ d, L: LA[i] })).filter((x) => x.d > 90).sort((a, b) => a.d - b.d);
+    const vu = lefts.map((d, i) => ({ d, L: LA[i] })).filter((x) => x.d === 90);
+    const steps = [];
+    steps.push({ text: vu.length ? `Góc ${vu[0].L} có ô vuông ở đỉnh nên là góc vuông: 90°. Các góc còn lại so với 90°.` : 'So từng góc với góc vuông 90°: góc hẹp hơn là góc nhọn, rộng hơn là góc tù.', visual: ang(vu.length ? 90 : 60, { label: vu.length ? vu[0].L : undefined, ...(vu.length ? { show: 'square' } : {}) }) });
+    if (nhs.length) steps.push({ text: `Các góc nhọn, từ hẹp đến rộng: ${nhs.map((x) => `góc ${x.L} là ${x.d}°`).join(', ')}.`, visual: cmp(nhs.map((x) => ({ label: x.L, deg: x.d }))) });
+    if (tus.length) steps.push({ text: `Các góc tù, từ hẹp đến rộng: ${tus.map((x) => `góc ${x.L} là ${x.d}°`).join(', ')}.`, visual: cmp(tus.map((x) => ({ label: x.L, deg: x.d }))) });
+    steps.push({ text: `Vậy ${lefts.map((d, i) => `góc ${LA[i]} nối với ${d}°`).join(', ')}. Số ${dist}° không dùng.` });
+    return {
+      id: 'g14.8', src: '[biến thể mới]', type: 'match',
+      prompt: `Nối mỗi góc với số đo của nó (các số đo cho sẵn: ${sortedList}).`,
+      hint: 'Góc nào có ô vuông ở đỉnh là góc vuông. Còn lại: so với 90°.',
+      left, right, pairs,
+      explain: { steps },
+      meta: { degs, letters: LA },
+    };
+  },
+  solve(item) { const { degs, letters } = item.meta; const o = {}; for (let i = 0; i < 4; i++) o[letters[i]] = 'r' + degs[i]; return o; },
+};
+const LETTER_SETS4 = [['A', 'B', 'C', 'D'], ['M', 'N', 'P', 'Q'], ['E', 'F', 'G', 'H']];
+
+// g14.9: chọn tất cả các góc nhọn / góc tù — bài 14.6
+const g9 = {
+  id: 'g14.9', covers: ['14.6'],
+  make(rng) {
+    const target = rng.next() < 0.5 ? 'nhọn' : 'tù';
+    const nC = rng.next() < 0.6 ? 2 : 3;
+    const free = (arr, d) => arr.every((x) => Math.abs(x - d) >= 8);
+    const list = []; // {d, ok}
+    const ds = () => list.map((x) => x.d);
+    const farSide = (t) => (t === 'nhọn' ? [15, 85] : [95, 170]);
+    const near = (t) => (t === 'nhọn' ? [78, 89] : [91, 104]);
+    const oppo = target === 'nhọn' ? 'tù' : 'nhọn';
+    const addOne = (kind, lo, hi, ok) => { for (let k = 0; k < 100; k++) { const d = int(rng, lo, hi); if (free(ds(), d)) { list.push({ d, ok }); return; } } };
+    // đúng
+    if (rng.next() < 0.6) addOne(target, ...near(target), true);
+    while (list.length < nC) addOne(target, ...(target === 'nhọn' ? [15, 72] : [108, 168]), true);
+    // sai
+    const nW = 4 - nC;
+    if (rng.next() < 0.75 || nW === 1) list.push({ d: 90, ok: false });
+    while (list.length < 4) addOne(oppo, ...(oppo === 'nhọn' ? [15, 72] : [108, 168]), false);
+    const sh2 = shuffle(rng, list);
+    const letters = shuffle(rng, ['A', 'B', 'C', 'D']);
+    const items = sh2.map((x, i) => ({ ...x, L: letters[i] })).sort((a, b) => a.L.localeCompare(b.L));
+    const txt = (x) => `Góc ${x.L} (${x.d}°)`;
+    const word = target === 'nhọn' ? 'bé' : 'lớn';
+    const prompts = target === 'nhọn'
+      ? ['Chọn TẤT CẢ các góc NHỌN.', 'Những góc nào bé hơn góc vuông? Chọn tất cả các góc đó.']
+      : ['Chọn TẤT CẢ các góc TÙ.', 'Những góc nào lớn hơn góc vuông? Chọn tất cả các góc đó.'];
+    const rightOnes = items.filter((x) => x.ok), wrongOnes = items.filter((x) => !x.ok);
+    return {
+      id: 'g14.9', src: '[biến thể mới]', type: 'multi',
+      prompt: pick(rng, prompts),
+      hint: `Góc ${target} phải ${word} hơn góc vuông, tức ${word} hơn 90°.`,
+      layout: 'grid2',
+      choices: items.map((x) => (x.ok
+        ? { text: txt(x), correct: true, visual: ang(x.d, { label: x.L }) }
+        : {
+          text: txt(x), code: 'QUY', visual: ang(x.d, { label: x.L, ...sqSpec(x.d) }),
+          why: x.d === 90 ? `Góc ${x.L} đúng bằng 90°, là góc vuông. Góc ${target} phải ${word} hơn 90°.` : `Góc ${x.L} là ${x.d}°, ${x.d < 90 ? 'bé' : 'lớn'} hơn góc vuông, nên là góc ${kindOf(x.d)}.`,
+        })),
+      explain: {
+        steps: [
+          { text: `Góc ${target} là góc ${word} hơn góc vuông. Hãy so từng góc với 90°.`, visual: ang(90, { show: 'square' }) },
+          { text: `${cap1(listVi(rightOnes.map((x) => `góc ${x.L} (${x.d}°)`)))} đều ${word} hơn 90°${rightOnes.some((x) => Math.abs(x.d - 90) <= 12) ? ', dù có góc trông gần vuông' : ''}.`, visual: cmp(rightOnes.map((x) => ({ label: x.L, deg: x.d }))), mark: 'good' },
+          { text: `${cap1(listVi(wrongOnes.map((x) => `góc ${x.L} (${x.d}°)`)))} không phải góc ${target}. Đáp án là ${listVi(rightOnes.map((x) => `góc ${x.L}`))}.`, visual: cmp(wrongOnes.map((x) => ({ label: x.L, deg: x.d }))) },
+        ],
+      },
+      meta: { target, items: items.map((x) => ({ d: x.d, L: x.L })) },
+    };
+  },
+  solve(item) {
+    const { target, items } = item.meta;
+    return items.filter((x) => (target === 'nhọn' ? x.d < 90 : x.d > 90)).map((x) => `Góc ${x.L} (${x.d}°)`).sort().join(',');
+  },
+};
+
+// g14.10: nối giờ đúng với loại góc tạo bởi hai kim — bài 14.7
+const g10 = {
+  id: 'g14.10', covers: ['14.7'],
+  make(rng) {
+    const hn = pick(rng, [1, 2, 10, 11]), hv = pick(rng, [3, 9]), ht = pick(rng, [4, 5, 7, 8]);
+    const hs = shuffle(rng, [hn, hv, ht]);
+    const use24 = rng.next() < 0.35;
+    const lab = (h) => (use24 ? `${h + 12} giờ` : `${h} giờ`);
+    const left = hs.map((h) => ({ id: 'h' + h, text: lab(h), visual: { kind: 'clock', h: use24 ? h + 12 : h, m: 0 } }));
+    const kindId = (h) => { const d = Math.min(h, 12 - h) * 30; return d < 90 ? 'nhon' : d === 90 ? 'vuong' : 'tu'; };
+    const right = [{ id: 'nhon', text: 'góc nhọn' }, { id: 'vuong', text: 'góc vuông' }, { id: 'tu', text: 'góc tù' }];
+    const pairs = {}; hs.forEach((h) => { pairs['h' + h] = kindId(h); });
+    const list = hs.slice().sort((a, b) => a - b).map(lab).join(', ');
+    const t = int(rng, 0, 3);
+    const prompt = t === 3 ? `Hai kim đồng hồ chỉ các giờ đúng: ${list}. Mỗi lúc, hai kim tạo thành góc loại nào? Nối giờ với loại góc. (Mỗi khoảng giờ là 30°.)`
+      : t === 0 ? `Hai kim đồng hồ tạo thành một góc. Nối mỗi giờ (${list}) với loại góc đúng. (Mỗi khoảng giờ trên đồng hồ là 30°.)`
+      : t === 1 ? `Lúc ${list}, kim giờ và kim phút tạo thành một góc nhỏ. Nối mỗi giờ với loại góc đúng. (Mỗi khoảng giờ là 30°.)`
+        : `Nối mỗi giờ đúng (${list}) với loại góc mà hai kim đồng hồ tạo thành. (Mỗi khoảng giờ trên đồng hồ là 30°.)`;
+    const order = hs.slice().sort((a, b) => Math.min(a, 12 - a) - Math.min(b, 12 - b));
+    const vis = (h) => ang(Math.min(h, 12 - h) * 30, { name: true });
+    return {
+      id: 'g14.10', src: '[biến thể mới]', type: 'match',
+      prompt,
+      hint: 'Từ số 12 đến số chỉ giờ, mỗi khoảng là 30°.',
+      left, right, pairs,
+      explain: {
+        steps: order.map((h, i) => {
+          const n = Math.min(h, 12 - h), d = n * 30;
+          return { text: `Lúc ${lab(h)}: ${n} khoảng giờ giữa hai kim, ${n} × 30° = ${d}° ${d === 90 ? 'đúng bằng' : d < 90 ? 'bé hơn' : 'lớn hơn'} 90°: góc ${kindOf(d)}.${i === order.length - 1 ? ` Vậy ${order.map((x) => `${lab(x)} nối góc ${kindOf(Math.min(x, 12 - x) * 30)}`).join(', ')}.` : ''}`, visual: vis(h) };
+        }),
+      },
+      meta: { hs },
+    };
+  },
+  solve(item) {
+    const o = {};
+    item.meta.hs.forEach((h) => { const d = Math.min(h, 12 - h) * 30; o['h' + h] = d < 90 ? 'nhon' : d === 90 ? 'vuong' : 'tu'; });
+    return o;
   },
 };
 
@@ -347,5 +667,5 @@ export default {
     },
   },
 
-  generators: [g1, g2, g3, g4],
+  generators: [g1, g2, g3, g4, g5, g6, g7, g8, g9, g10],
 };

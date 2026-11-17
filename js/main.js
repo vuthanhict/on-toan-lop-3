@@ -4,7 +4,9 @@ import { h, clear, renderItem, openExplain, toast, speakerBtn } from './core/ui.
 import { speak, stop as stopSpeech, status as speechStatus, onStatus } from './core/speech.js';
 import { mascotSVG, setMascot, say as mascotSay } from './core/mascot.js';
 import { loadVisuals, renderVisual, vctx } from './visuals/index.js';
-import { loadTopics, resolveRef, makeSimilar } from './topics/index.js';
+import { loadTopics } from './topics/index.js';
+import * as practice from './core/practice.js';
+import { prepareItem } from './core/variety.js';
 import { seeded, shuffle } from './core/rng.js';
 import { icon, topicIcon, groupOf } from './core/icons.js';
 import * as game from './core/game.js';
@@ -226,16 +228,13 @@ function viewTopic(id) {
   const lessonBtn = (t.lesson && t.lesson.length) ? h('button', { class: 'btn-secondary', type: 'button', onclick: () => { const first = !rec.learned; rec.learned = true; store.save(); const ev = game.onLearned(first); openExplain({ title: 'Bài giảng', steps: t.lesson, voice: voiceOn(), finishLabel: 'Xong', mascot: 'wave', onClose: () => celebrate(ev) }); } }, icon('film', 24), 'Bài giảng') : null;
   screen('topic', topbar('CĐ' + t.no + ' · ' + (t.short || t.title), '#/'),
     h('div', { class: 'thead', style: '--tile:' + g.soft + ';--ink:' + g.ink }, ti, h('div', null, h('div', { class: 'chip-g' }, g.name), h('h2', null, t.title), starsRow(rec.stars || 0, 22))),
+    (rec.tries || 0) > 0 ? h('p', { class: 'fresh-note' }, icon('star', 16), 'Mỗi lần luyện là bài mới, số khác. Con cứ thử nhé!') : null,
     h('div', { class: 'sec-row' }, h('h3', { class: 'sec' }, 'Điều cần nhớ'), rem.length > 1 ? dots : null), cards,
     h('div', { class: 'actionbar' }, lessonBtn, h('a', { class: 'btn-primary', href: '#/practice/' + id }, icon('pencil', 24), 'Luyện tập')));
 }
 
 // ---------- Phiên luyện tập ----------
-function buildTopicQueue(t) {
-  const q = [...(t.items || []).slice(0, 6)];
-  if (t.variant) q.push(t.variant);
-  return q.map((it) => Object.assign({}, it, { _ref: { t: t.id, i: it.id }, _topic: t }));
-}
+function buildTopicQueue(t) { return practice.queueFor(t); }
 
 function startSession(opts) {
   // opts: {title, back, queue, mode: 'practice'|'review'|'exam', onFinish(summary)}
@@ -264,14 +263,20 @@ function startSession(opts) {
     if (S.idx >= S.queue.length) return finish();
     const item = S.queue[S.idx];
     attempt = 0; locked = false;
-    window.__cur = item;
-    ctl = renderItem(item);
+    const shown = prepareItem(item); // xáo thứ tự lựa chọn/thẻ mỗi lần: không nhớ vị trí đáp án
+    window.__cur = shown;
+    ctl = renderItem(shown);
     const owlBox = h('div', { class: 'fb-owl' }, mascotSVG('idle'));
     let pendingEv = null;
     function layout() {
       const dock = wrap.querySelector('.np-dock'); const fbh = fb.hidden ? 0 : fb.offsetHeight;
       const dh = dock && getComputedStyle(dock).position === 'fixed' ? dock.offsetHeight : 0;
       wrap.style.setProperty('--dock-h', dh + 'px'); wrap.style.setProperty('--fb-h', fbh + 'px');
+      // bàn phím cố định + khung phản hồi chiếm chỗ: tự cuộn để ô đang điền không bị che
+      if (dh && !fb.hidden) {
+        const cell = wrap.querySelector('.col-grid button.active, .slot.active');
+        if (cell) { const r = cell.getBoundingClientRect(); const limit = innerHeight - (parseFloat(getComputedStyle(wrap).getPropertyValue('--bar-h')) || 84) - dh - fbh - 12; if (r.bottom > limit) window.scrollBy({ top: r.bottom - limit + 8, behavior: 'auto' }); }
+      }
     }
     activeLayout = layout;
     const fbText = h('div', { class: 'fb-text' });
@@ -301,7 +306,7 @@ function startSession(opts) {
       btnSide.hidden = false; btnSide.textContent = 'Xem lại lời giải';
       btnSide.onclick = () => explain(false);
       btnMain.onclick = () => {
-        if (canSim) { const sim = makeSimilar(t, S.idx); if (sim) { S.queue.splice(S.idx + 1, 0, sim); } }
+        if (canSim) { const sim = practice.similarFor(t, item); if (sim) { S.queue.splice(S.idx + 1, 0, sim); } }
         next();
       };
     };
@@ -343,7 +348,7 @@ function startSession(opts) {
         if (attempt === 1) {
           phase = 'retry';
           ctl.markWrong(res); game.onWrong(); play('oops');
-          showFb('warn', 'encourage', mascotSay('retry'), item.hint ? 'Gợi ý: ' + item.hint : 'Đọc lại đề thật kỹ, rồi chọn lại nhé.');
+          showFb('warn', 'encourage', mascotSay('retry'), item.type === 'column' && res.why ? res.why : item.hint ? 'Gợi ý: ' + item.hint : 'Đọc lại đề thật kỹ, rồi chọn lại nhé.');
           btnMain.textContent = 'Kiểm tra'; btnMain.disabled = true;
           btnSide.hidden = false; btnSide.textContent = 'Xem vì sao';
           btnSide.onclick = () => { record(false, false); locked = true; phase = 'after'; game.onWrong(); explain(true); };
@@ -382,7 +387,7 @@ function viewPractice(id) {
 
 function viewReview() {
   const st = store.get();
-  const items = st.wrong.map((r) => resolveRef(TOPICS, r)).filter(Boolean);
+  const items = st.wrong.map((r) => practice.resolveReview(TOPICS, r)).filter(Boolean);
   if (!items.length) {
     const owl = mascotSVG('happy');
     screen('result', topbar('Ôn câu sai', '#/'), h('div', { class: 'res-owl' }, owl), h('h2', { class: 'center' }, 'Không có câu sai nào!'), h('p', { class: 'center sub' }, 'Con hãy luyện thêm các chủ đề rồi quay lại nhé.'), h('a', { class: 'btn-primary big block', href: '#/' }, 'Về trang chủ')), showTabs('review');
@@ -403,17 +408,7 @@ function viewExamIntro() {
 function viewExam() {
   const st = store.get(); st.exam.tries++;
   const rng = seeded(Date.now() % 1e9);
-  const q = [];
-  TOPICS.forEach((t) => {
-    const pool = [...(t.items || []), ...(t.variant ? [t.variant] : [])];
-    let it;
-    if ((t.generators || []).length && rng.next() < 0.6) { it = makeSimilar(t, Math.floor(rng.next() * 1000)); if (it) it._similar = false; }
-    if (!it && pool.length) { const base = pool[Math.floor(rng.next() * pool.length)]; it = Object.assign({}, base, { _ref: { t: t.id, i: base.id }, _topic: t }); }
-    if (it) q.push(it);
-  });
-  const heavy = shuffle(rng, TOPICS.filter((t) => [3, 7, 10, 11, 12].includes(t.no)));
-  heavy.forEach((t) => { if (q.length < 20) { const it = makeSimilar(t, 777); if (it) { it._similar = false; q.push(it); } } });
-  const queue = shuffle(rng, q).slice(0, 20);
+  const queue = practice.examQueue(TOPICS, rng);
   if (!queue.length) return viewHome();
   startSession({
     mode: 'exam', queue, back: '#/',
