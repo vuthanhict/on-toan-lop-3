@@ -15,19 +15,19 @@ function containerShape(kind, x, y, w, hgt, tint) {
   const stroke = 'rgba(0,0,0,.28)';
   if (kind === 'túi') {
     const d = `M${x + w * 0.24},${y + 14} Q${x - 2},${y + hgt * 0.45} ${x + w * 0.05},${y + hgt - 16} Q${x + w * 0.08},${y + hgt} ${x + w * 0.28},${y + hgt} L${x + w * 0.72},${y + hgt} Q${x + w * 0.92},${y + hgt} ${x + w * 0.95},${y + hgt - 16} Q${x + w + 2},${y + hgt * 0.45} ${x + w * 0.76},${y + 14} Z`;
-    g.appendChild(s('path', { d, fill: '#FFE0AE', stroke: '#D9902F', 'stroke-width': 3.5, 'stroke-linejoin': 'round' }));
-    g.appendChild(s('rect', { x: x + w * 0.26, y: y + 6, width: w * 0.48, height: 13, rx: 6.5, fill: '#FF8A3D', stroke: '#C9661C', 'stroke-width': 2.5 }));
-    g.appendChild(s('path', { d: `M${x + w * 0.5},${y + 8} l-12,-9 v14z M${x + w * 0.5},${y + 8} l12,-9 v14z`, fill: '#FF8A3D', stroke: '#C9661C', 'stroke-width': 2.5, 'stroke-linejoin': 'round', transform: 'translate(0,-1)' }));
+    g.appendChild(s('path', { d, fill: '#F9C28F', stroke: '#F5893A', 'stroke-width': 3.5, 'stroke-linejoin': 'round' }));
+    g.appendChild(s('rect', { x: x + w * 0.26, y: y + 6, width: w * 0.48, height: 13, rx: 6.5, fill: '#F5893A', stroke: '#F5893A', 'stroke-width': 2.5 }));
+    g.appendChild(s('path', { d: `M${x + w * 0.5},${y + 8} l-12,-9 v14z M${x + w * 0.5},${y + 8} l12,-9 v14z`, fill: '#F5893A', stroke: '#F5893A', 'stroke-width': 2.5, 'stroke-linejoin': 'round', transform: 'translate(0,-1)' }));
   } else if (kind === 'hộp') {
-    g.appendChild(s('rect', { x: x + 2, y: y + 12, width: w - 4, height: hgt - 12, rx: 10, fill: '#F1D9AE', stroke: '#B98A3E', 'stroke-width': 3.5 }));
-    g.appendChild(s('rect', { x, y: y + 2, width: w, height: 18, rx: 8, fill: '#D8B170', stroke: '#B98A3E', 'stroke-width': 3.5 }));
+    g.appendChild(s('rect', { x: x + 2, y: y + 12, width: w - 4, height: hgt - 12, rx: 10, fill: '#FBDF86', stroke: '#F5893A', 'stroke-width': 3.5 }));
+    g.appendChild(s('rect', { x, y: y + 2, width: w, height: 18, rx: 8, fill: '#F5893A', stroke: '#F5893A', 'stroke-width': 3.5 }));
   } else if (kind === 'xe') {
-    g.appendChild(s('rect', { x: x + 2, y: y + 8, width: w - 4, height: hgt - 20, rx: 10, fill: '#CFE0FF', stroke: '#4C6FFF', 'stroke-width': 3.5 }));
-    g.appendChild(s('circle', { cx: x + w * 0.24, cy: y + hgt - 8, r: 9, fill: '#2B2A3A', stroke: '#fff', 'stroke-width': 2.5 }));
-    g.appendChild(s('circle', { cx: x + w * 0.76, cy: y + hgt - 8, r: 9, fill: '#2B2A3A', stroke: '#fff', 'stroke-width': 2.5 }));
+    g.appendChild(s('rect', { x: x + 2, y: y + 8, width: w - 4, height: hgt - 20, rx: 10, fill: '#D4DCFD', stroke: '#4F6BED', 'stroke-width': 3.5 }));
+    g.appendChild(s('circle', { cx: x + w * 0.24, cy: y + hgt - 8, r: 9, fill: '#263250', stroke: '#FFFFFF', 'stroke-width': 2.5 }));
+    g.appendChild(s('circle', { cx: x + w * 0.76, cy: y + hgt - 8, r: 9, fill: '#263250', stroke: '#FFFFFF', 'stroke-width': 2.5 }));
   } else { // đĩa
-    g.appendChild(s('ellipse', { cx: x + w / 2, cy: y + hgt - 11, rx: w / 2, ry: 15, fill: '#FFFFFF', stroke: '#9AA6C7', 'stroke-width': 3.5 }));
-    g.appendChild(s('ellipse', { cx: x + w / 2, cy: y + hgt - 12, rx: w / 2 - 12, ry: 8.5, fill: '#EEF1FF', stroke: '#C8D0E8', 'stroke-width': 2 }));
+    g.appendChild(s('ellipse', { cx: x + w / 2, cy: y + hgt - 11, rx: w / 2, ry: 15, fill: '#FFFFFF', stroke: '#8E99B2', 'stroke-width': 3.5 }));
+    g.appendChild(s('ellipse', { cx: x + w / 2, cy: y + hgt - 12, rx: w / 2 - 12, ry: 8.5, fill: '#E8EDFF', stroke: '#AEBBFA', 'stroke-width': 2 }));
   }
   void tint; void stroke;
   return g;
@@ -122,8 +122,8 @@ function renderGroups(spec, ctx) {
     const rsz = Math.min(32, (W - 40 - 80) / Math.max(1, remItems));
     if (showRem) {
       remBox = s('g', { class: 'v-groups-pop' });
-      remBox.appendChild(s('rect', { x: 8, y: ry, width: W - 16, height: remH - 6, rx: 18, fill: '#FFF6D1', stroke: '#E8A900', 'stroke-width': 3, 'stroke-dasharray': '9 6' }));
-      remBox.appendChild(s('rect', { x: 22, y: ry + (remH - 6) / 2 - 17, width: 62, height: 34, rx: 17, fill: '#FFC531' }));
+      remBox.appendChild(s('rect', { x: 8, y: ry, width: W - 16, height: remH - 6, rx: 18, fill: '#FFE9A8', stroke: '#F7BE2C', 'stroke-width': 3, 'stroke-dasharray': '9 6' }));
+      remBox.appendChild(s('rect', { x: 22, y: ry + (remH - 6) / 2 - 17, width: 62, height: 34, rx: 17, fill: '#F7BE2C' }));
       remBox.appendChild(s('text', { x: 53, y: ry + (remH - 6) / 2 + 7, 'text-anchor': 'middle', 'font-size': 19, 'font-weight': 800, fill: C.ink }, 'dư ' + rem));
       svg.appendChild(remBox);
     }

@@ -4,18 +4,18 @@
 export const NS = 'http://www.w3.org/2000/svg';
 
 export const COL = {
-  ink: 'var(--c-ink,#2B2A3A)',
-  primary: 'var(--c-primary,#4C6FFF)',
-  accent: 'var(--c-accent,#FF8A3D)',
-  ok: 'var(--c-ok,#2FBF71)',
-  warn: 'var(--c-warn,#FFC531)',
-  bg: 'var(--c-bg,#FFF8EC)',
-  card: 'var(--c-card,#FFFFFF)',
-  line: 'var(--c-line,#E7DCC6)',
-  soft: 'var(--c-soft,#EEF1FF)',
-  mute: '#6B6880',
+  ink: 'var(--c-ink,#263250)',
+  primary: 'var(--c-primary,#4F6BED)',
+  accent: 'var(--c-accent,#F5893A)',
+  ok: 'var(--c-ok,#1F8456)',
+  warn: 'var(--c-warn,#EC7468)',
+  bg: 'var(--c-bg,#FAF6EE)',
+  card: 'var(--c-card,#FFFEFB)',
+  line: 'var(--c-line,#E8E1D2)',
+  soft: 'var(--c-soft,#E8EDFF)',
+  mute: '#5D6985',
 };
-export const PAL = ['#4C6FFF', '#FF8A3D', '#2FBF71', '#B05CFF', '#FFC531', '#FF5C8A', '#22B8CF', '#8D6E63'];
+export const PAL = ['#4F6BED', '#F5893A', '#34B27B', '#8B6CF0', '#F7BE2C', '#EC7468', '#3BB3C4', '#5D6985'];
 
 export function pal(ctx, i) {
   const p = ctx && ctx.palette && ctx.palette.length ? ctx.palette : PAL;
@@ -112,7 +112,7 @@ export function textOn(hex) {
   if (h.length === 3) h = h.split('').map((c) => c + c).join('');
   const r = parseInt(h.slice(0, 2), 16), g = parseInt(h.slice(2, 4), 16), b = parseInt(h.slice(4, 6), 16);
   const L = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
-  return L > 0.62 ? '#2B2A3A' : '#FFFFFF';
+  return L > 0.62 ? '#263250' : '#FFFFFF';
 }
 
 // Phân số xếp chồng (tử / vạch / mẫu) bằng SVG text, KHÔNG dùng ký tự '/'

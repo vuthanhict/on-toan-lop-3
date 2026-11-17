@@ -36,7 +36,7 @@ function buildAngle(parent, cellX, cellY, cellW, L, deg, letter, showName, show,
   let ty = vy + 32;
   if (letter) {
     const lt = el('g', null);
-    lt.appendChild(el('circle', { cx: vx, cy: ty - 5, r: 15, fill: '#fff', stroke: color2, 'stroke-width': 3 }));
+    lt.appendChild(el('circle', { cx: vx, cy: ty - 5, r: 15, fill: '#FFFFFF', stroke: color2, 'stroke-width': 3 }));
     lt.appendChild(el('text', { x: vx, y: ty, 'text-anchor': 'middle', 'font-size': 18, 'font-weight': 900, fill: COL.ink, text: String(letter) }));
     g.appendChild(lt);
     ty += 28;
@@ -239,7 +239,7 @@ function shape2d(spec, ctx) {
     root.appendChild(outline);
   }
   const axG = el('g', null);
-  lines.forEach((l) => axG.appendChild(el('line', { x1: l.x1, y1: l.y1, x2: l.x2, y2: l.y2, stroke: '#FF4F8B', 'stroke-width': 2.4, 'stroke-dasharray': '5 4.5', 'stroke-linecap': 'round' })));
+  lines.forEach((l) => axG.appendChild(el('line', { x1: l.x1, y1: l.y1, x2: l.x2, y2: l.y2, stroke: '#EC7468', 'stroke-width': 2.4, 'stroke-dasharray': '5 4.5', 'stroke-linecap': 'round' })));
   root.appendChild(axG);
   if (showLabel) {
     svg.appendChild(el('text', { x: 180, y: oy + S + 30, 'text-anchor': 'middle', 'font-size': 19, 'font-weight': 900, fill: COL.ink, text: info.vi[0].toUpperCase() + info.vi.slice(1) }));
@@ -279,14 +279,14 @@ function grid(spec, ctx) {
   cells = cells.filter((c) => c.c >= 0 && c.c < cols && c.r >= 0 && c.r < rows);
   const label = `Lưới ${cols} cột ${rows} hàng, có ${cells.length} ô được tô${spec.axis ? ', có một đường nét đứt (trục đối xứng)' : ''}.`;
   const svg = svgRoot(360, Hh + oy * 2, label, 'v-grid', 440);
-  svg.appendChild(el('rect', { x: ox, y: oy, width: W, height: Hh, fill: '#fff' }));
+  svg.appendChild(el('rect', { x: ox, y: oy, width: W, height: Hh, fill: '#FFFFFF' }));
   const cellEls = [];
   cells.forEach((c) => {
     const r = el('rect', { x: ox + c.c * cs, y: oy + c.r * cs, width: cs, height: cs, fill: c.color || pal(ctx, 0), 'fill-opacity': 0.85 });
     svg.appendChild(r); cellEls.push(r);
   });
-  for (let i = 0; i <= cols; i++) svg.appendChild(el('line', { x1: ox + i * cs, x2: ox + i * cs, y1: oy, y2: oy + Hh, stroke: '#B9B4C9', 'stroke-width': i === 0 || i === cols ? 3 : 1.6 }));
-  for (let j = 0; j <= rows; j++) svg.appendChild(el('line', { x1: ox, x2: ox + W, y1: oy + j * cs, y2: oy + j * cs, stroke: '#B9B4C9', 'stroke-width': j === 0 || j === rows ? 3 : 1.6 }));
+  for (let i = 0; i <= cols; i++) svg.appendChild(el('line', { x1: ox + i * cs, x2: ox + i * cs, y1: oy, y2: oy + Hh, stroke: '#B8C1D6', 'stroke-width': i === 0 || i === cols ? 3 : 1.6 }));
+  for (let j = 0; j <= rows; j++) svg.appendChild(el('line', { x1: ox, x2: ox + W, y1: oy + j * cs, y2: oy + j * cs, stroke: '#B8C1D6', 'stroke-width': j === 0 || j === rows ? 3 : 1.6 }));
   const ax = spec.axis;
   if (ax) {
     let l = null;
@@ -296,7 +296,7 @@ function grid(spec, ctx) {
     else if (ax === 'd') l = [ox - e, oy - e, ox + W + e, oy + Hh + e];
     else if (typeof ax === 'object' && ax.x != null) l = [ox + ax.x * cs, oy - e, ox + ax.x * cs, oy + Hh + e];
     else if (typeof ax === 'object' && ax.y != null) l = [ox - e, oy + ax.y * cs, ox + W + e, oy + ax.y * cs];
-    if (l) svg.appendChild(el('line', { x1: l[0], y1: l[1], x2: l[2], y2: l[3], stroke: '#FF4F8B', 'stroke-width': 4, 'stroke-dasharray': '9 7', 'stroke-linecap': 'round' }));
+    if (l) svg.appendChild(el('line', { x1: l[0], y1: l[1], x2: l[2], y2: l[3], stroke: '#EC7468', 'stroke-width': 4, 'stroke-dasharray': '9 7', 'stroke-linecap': 'round' }));
   }
   ensureStyle('v2-geometry', CSS);
   setupAnim(svg, spec, ctx, (A) => {

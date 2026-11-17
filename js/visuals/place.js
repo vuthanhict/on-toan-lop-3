@@ -113,15 +113,15 @@ function renderPlace(spec, ctx) {
     // ô chữ số
     const cell = s('g', { class: 'v-place-pop', opacity: dim ? 0.7 : 1 });
     const hidden = hide.has(i);
-    cell.appendChild(s('rect', { x, y: yDig + 3, width: cw, height: digH, rx: 14, fill: '#000', opacity: 0.08 }));
+    cell.appendChild(s('rect', { x, y: yDig + 3, width: cw, height: digH, rx: 14, fill: '#263250', opacity: 0.08 }));
     cell.appendChild(s('rect', {
       x, y: yDig, width: cw, height: digH, rx: 14,
-      fill: hidden ? '#FFF6D1' : (isHl ? col : '#fff'),
+      fill: hidden ? '#FFE9A8' : (isHl ? col : '#FFFFFF'),
       stroke: hidden ? pal[4] : col, 'stroke-width': isHl ? 5 : 3.5, 'stroke-dasharray': hidden ? '7 5' : null,
     }));
     cell.appendChild(s('text', {
       x: x + cw / 2, y: yDig + digH / 2 + 13, 'text-anchor': 'middle', 'font-size': 40, 'font-weight': 800,
-      fill: hidden ? '#B35F00' : (isHl ? inkOn(col) : C.ink),
+      fill: hidden ? '#D96A1C' : (isHl ? inkOn(col) : C.ink),
     }, hidden ? '?' : d));
     g.appendChild(cell);
     // giá trị
@@ -129,7 +129,7 @@ function renderPlace(spec, ctx) {
     if (showValue) {
       valEl = s('g', { opacity: dim ? 0.6 : 1 });
       const v = hidden ? '?' : (d === '0' ? '0' : groupDigits(d + '0'.repeat(i)));
-      valEl.appendChild(s('rect', { x, y: yVal, width: cw, height: valH, rx: 11, fill: isHl ? col : '#fff', stroke: col, 'stroke-width': 2.5, opacity: isHl ? 1 : 1 }));
+      valEl.appendChild(s('rect', { x, y: yVal, width: cw, height: valH, rx: 11, fill: isHl ? col : '#FFFFFF', stroke: col, 'stroke-width': 2.5, opacity: isHl ? 1 : 1 }));
       valEl.appendChild(s('text', { x: x + cw / 2, y: yVal + valH / 2 + 5.2, 'text-anchor': 'middle', 'font-size': 14, 'font-weight': 800, fill: isHl ? inkOn(col) : C.ink, 'letter-spacing': v.length > 6 ? '-0.4' : '0' }, v));
       g.appendChild(valEl);
     }

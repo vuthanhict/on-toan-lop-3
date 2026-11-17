@@ -21,11 +21,11 @@ export default {
 
   remember: [
     { text: 'Số âm là số bé hơn 0, viết thêm dấu − ở phía trước. Trên tia số, đi sang trái thì số càng bé: −8, −5, 0, 1.',
-      visual: { kind: 'numberline', min: -9, max: 2, step: 1, labelEvery: 1, points: [{ at: -8 }, { at: -5 }, { at: 0, color: '#FF8A3D' }, { at: 1 }], range: { from: -9, to: 0, color: '#4C6FFF' } } },
+      visual: { kind: 'numberline', min: -9, max: 2, step: 1, labelEvery: 1, points: [{ at: -8 }, { at: -5 }, { at: 0, color: '#F5893A' }, { at: 1 }], range: { from: -9, to: 0, color: '#4F6BED' } } },
     { text: 'Nhiệt độ: số lớn hơn thì ấm hơn. Vì thế −7 °C lạnh hơn 2 °C.',
       visual: th(2, [{ label: 'Mát-xcơ-va', value: -7 }, { label: 'Bắc Kinh', value: 2 }], { anim: 'rise' }) },
     { text: 'Muốn biết hơn nhau mấy độ, hãy đếm qua số 0. Từ −7 lên 0 là 7 độ, từ 0 lên 2 là 2 độ nữa. Tất cả là 9 độ.',
-      visual: { kind: 'numberline', min: -8, max: 3, step: 1, labelEvery: 1, points: [{ at: -7 }, { at: 0, color: '#FF8A3D' }, { at: 2 }], jumps: [{ from: -7, to: 0, label: '+7' }, { from: 0, to: 2, label: '+2' }], marker: { at: -7, emoji: '🐸' }, anim: 'hop' } },
+      visual: { kind: 'numberline', min: -8, max: 3, step: 1, labelEvery: 1, points: [{ at: -7 }, { at: 0, color: '#F5893A' }, { at: 2 }], jumps: [{ from: -7, to: 0, label: '+7' }, { from: 0, to: 2, label: '+2' }], marker: { at: -7, emoji: '🐸' }, anim: 'hop' } },
   ],
 
   lesson: [
@@ -36,9 +36,9 @@ export default {
     { text: 'Nhiệt độ −4 °C: thủy ngân tụt xuống dưới vạch 0. Mình viết dấu − phía trước và đọc là "âm bốn".',
       visual: th(-4, [{ label: '−4 °C', value: -4 }], { anim: 'rise' }) },
     { text: 'Trên tia số, số bên phải thì lớn hơn. Nên −4 < 0 < 6, và −4 bé hơn cả −2.',
-      visual: { kind: 'numberline', min: -6, max: 7, step: 1, labelEvery: 1, points: [{ at: -4 }, { at: -2 }, { at: 0, color: '#FF8A3D' }, { at: 6 }] } },
+      visual: { kind: 'numberline', min: -6, max: 7, step: 1, labelEvery: 1, points: [{ at: -4 }, { at: -2 }, { at: 0, color: '#F5893A' }, { at: 6 }] } },
     { text: 'Hơn nhau bao nhiêu độ? Ếch nhảy từ −3 lên 0 hết 3 bước, rồi lên 2 hết thêm 2 bước. Tất cả là 5 độ.',
-      visual: { kind: 'numberline', min: -4, max: 3, step: 1, labelEvery: 1, points: [{ at: -3 }, { at: 0, color: '#FF8A3D' }, { at: 2 }], jumps: [{ from: -3, to: 0, label: '+3' }, { from: 0, to: 2, label: '+2' }], marker: { at: -3, emoji: '🐸' }, anim: 'hop' } },
+      visual: { kind: 'numberline', min: -4, max: 3, step: 1, labelEvery: 1, points: [{ at: -3 }, { at: 0, color: '#F5893A' }, { at: 2 }], jumps: [{ from: -3, to: 0, label: '+3' }, { from: 0, to: 2, label: '+2' }], marker: { at: -3, emoji: '🐸' }, anim: 'hop' } },
     { text: 'Buổi sáng −3 °C, trưa tăng 5 độ: lên 0 mất 3 độ, còn 2 độ nữa nên lên 2 °C.',
       visual: th(2, [{ label: 'Sáng', value: -3 }, { label: 'Trưa', value: 2 }], { anim: 'rise' }) },
   ],
@@ -55,7 +55,7 @@ export default {
         W('0, −5, 1, −8', 'ĐỌC', 'Đây chính là thứ tự đề cho, chưa được sắp xếp.'),
       ],
       explain: { steps: [
-        { text: 'Số âm nằm bên trái số 0. Càng xa 0 về bên trái thì càng bé: −8 nằm xa nhất nên bé nhất.', visual: { kind: 'numberline', min: -9, max: 2, step: 1, labelEvery: 1, points: [{ at: -8 }, { at: -5 }, { at: 0, color: '#FF8A3D' }, { at: 1 }] } },
+        { text: 'Số âm nằm bên trái số 0. Càng xa 0 về bên trái thì càng bé: −8 nằm xa nhất nên bé nhất.', visual: { kind: 'numberline', min: -9, max: 2, step: 1, labelEvery: 1, points: [{ at: -8 }, { at: -5 }, { at: 0, color: '#F5893A' }, { at: 1 }] } },
         { text: 'Tăng dần là đọc từ trái sang phải trên tia số: −8, rồi −5, rồi 0, rồi 1.', visual: { kind: 'sequence', items: [-8, -5, 0, 1], arrowLabels: ['<', '<', '<'], anim: 'reveal' } },
         { text: 'Vậy đáp án là −8, −5, 0, 1.', mark: 'good' },
       ] },
@@ -73,7 +73,7 @@ export default {
       ],
       explain: { steps: [
         { text: 'Lạnh hơn thì nhiệt độ đi xuống, dưới vạch 0.', visual: th(0, [{ label: '0 °C', value: 0 }]) },
-        { text: 'Xuống 3 độ: 0 → −1 → −2 → −3.', visual: { kind: 'numberline', min: -4, max: 1, step: 1, labelEvery: 1, points: [{ at: 0, color: '#FF8A3D' }, { at: -3 }], jumps: [{ from: 0, to: -1, label: '−1' }, { from: -1, to: -2, label: '−1' }, { from: -2, to: -3, label: '−1' }], marker: { at: 0, emoji: '🐸' }, anim: 'hop' } },
+        { text: 'Xuống 3 độ: 0 → −1 → −2 → −3.', visual: { kind: 'numberline', min: -4, max: 1, step: 1, labelEvery: 1, points: [{ at: 0, color: '#F5893A' }, { at: -3 }], jumps: [{ from: 0, to: -1, label: '−1' }, { from: -1, to: -2, label: '−1' }, { from: -2, to: -3, label: '−1' }], marker: { at: 0, emoji: '🐸' }, anim: 'hop' } },
         { text: 'Vậy đáp án là −3 °C.', mark: 'good', visual: th(-3, [{ label: '−3 °C', value: -3 }]) },
       ] },
     },
@@ -107,7 +107,7 @@ export default {
       whyWrong: '2 lớn hơn −7, nên Bắc Kinh ấm hơn Mát-xcơ-va. Nam nói "lạnh hơn" là chưa đúng chiều.',
       explain: { steps: [
         { text: '2 °C lớn hơn −7 °C, nên Bắc Kinh ấm hơn. Nam nói "lạnh hơn" là chưa đúng.', visual: th(2, [{ label: 'Mát-xcơ-va', value: -7 }, { label: 'Bắc Kinh', value: 2 }]) },
-        { text: 'Đếm số độ hơn: từ −7 lên 0 là 7 độ, từ 0 lên 2 là 2 độ nữa.', visual: { kind: 'numberline', min: -8, max: 3, step: 1, labelEvery: 1, points: [{ at: -7 }, { at: 0, color: '#FF8A3D' }, { at: 2 }], jumps: [{ from: -7, to: 0, label: '+7' }, { from: 0, to: 2, label: '+2' }], marker: { at: -7, emoji: '🐸' }, anim: 'hop' } },
+        { text: 'Đếm số độ hơn: từ −7 lên 0 là 7 độ, từ 0 lên 2 là 2 độ nữa.', visual: { kind: 'numberline', min: -8, max: 3, step: 1, labelEvery: 1, points: [{ at: -7 }, { at: 0, color: '#F5893A' }, { at: 2 }], jumps: [{ from: -7, to: 0, label: '+7' }, { from: 0, to: 2, label: '+2' }], marker: { at: -7, emoji: '🐸' }, anim: 'hop' } },
         { text: 'Vậy Nam nói sai. Bắc Kinh ấm hơn Mát-xcơ-va 7 + 2 = 9 độ.', mark: 'good' },
       ] },
     },
@@ -135,8 +135,8 @@ export default {
         { match: '−2', code: 'DẤU', why: '5 − 3 = 2, và mình đã vượt qua số 0, nên kết quả là số dương.' },
       ],
       explain: { steps: [
-        { text: 'Từ −3 lên tới 0 mất 3 độ.', visual: { kind: 'numberline', min: -4, max: 4, step: 1, labelEvery: 1, points: [{ at: -3 }, { at: 0, color: '#FF8A3D' }], jumps: [{ from: -3, to: 0, label: '+3' }], marker: { at: -3, emoji: '🐸' }, anim: 'hop' } },
-        { text: 'Còn 5 − 3 = 2 độ nữa thì lên từ 0 tới 2.', visual: { kind: 'numberline', min: -4, max: 4, step: 1, labelEvery: 1, points: [{ at: -3 }, { at: 0, color: '#FF8A3D' }, { at: 2 }], jumps: [{ from: -3, to: 0, label: '+3' }, { from: 0, to: 2, label: '+2' }] } },
+        { text: 'Từ −3 lên tới 0 mất 3 độ.', visual: { kind: 'numberline', min: -4, max: 4, step: 1, labelEvery: 1, points: [{ at: -3 }, { at: 0, color: '#F5893A' }], jumps: [{ from: -3, to: 0, label: '+3' }], marker: { at: -3, emoji: '🐸' }, anim: 'hop' } },
+        { text: 'Còn 5 − 3 = 2 độ nữa thì lên từ 0 tới 2.', visual: { kind: 'numberline', min: -4, max: 4, step: 1, labelEvery: 1, points: [{ at: -3 }, { at: 0, color: '#F5893A' }, { at: 2 }], jumps: [{ from: -3, to: 0, label: '+3' }, { from: 0, to: 2, label: '+2' }] } },
         { text: 'Vậy nhiệt độ buổi trưa là 2 °C.', mark: 'good', visual: th(2, [{ label: 'Sáng', value: -3 }, { label: 'Trưa', value: 2 }]) },
       ] },
     },
@@ -188,7 +188,7 @@ export default {
             hint: 'Số nằm càng bên trái trên tia số thì càng bé.',
             choices, meta: { nums, asc },
             explain: { steps: [
-              { text: 'Số âm nằm bên trái số 0, càng xa 0 càng bé. Số dương nằm bên phải.', visual: { kind: 'numberline', min: lo, max: hi, step: 1, labelEvery: 1, points: nums.map((x) => ({ at: x, color: x === 0 ? '#FF8A3D' : undefined })) } },
+              { text: 'Số âm nằm bên trái số 0, càng xa 0 càng bé. Số dương nằm bên phải.', visual: { kind: 'numberline', min: lo, max: hi, step: 1, labelEvery: 1, points: nums.map((x) => ({ at: x, color: x === 0 ? '#F5893A' : undefined })) } },
               { text: `${asc ? 'Tăng dần là đọc từ trái sang phải' : 'Giảm dần là đọc từ phải sang trái'} trên tia số.`, visual: { kind: 'sequence', items: sorted, arrowLabels: arrowsOf(3, asc ? '<' : '>'), anim: 'reveal' } },
               { text: `Vậy đáp án là ${T(sorted)}.`, mark: 'good' },
             ] },
@@ -224,7 +224,7 @@ export default {
             choices, meta: { tw, tc, nw, nc },
             explain: { steps: [
               { text: `${f(tw)} lớn hơn ${f(tc)} nên ${nw} ấm hơn ${nc}.`, visual: th(tw, [{ label: nc, value: tc }, { label: nw, value: tw }]) },
-              { text: `Đếm độ: từ ${f(tc)} lên 0 là ${Math.abs(tc)} độ, từ 0 lên ${tw} là ${tw} độ nữa.`, visual: { kind: 'numberline', min: tc - 1, max: tw + 1, step: 1, labelEvery: 1, points: [{ at: tc }, { at: 0, color: '#FF8A3D' }, { at: tw }], jumps: [{ from: tc, to: 0, label: '+' + Math.abs(tc) }, { from: 0, to: tw, label: '+' + tw }], marker: { at: tc, emoji: '🐸' }, anim: 'hop' } },
+              { text: `Đếm độ: từ ${f(tc)} lên 0 là ${Math.abs(tc)} độ, từ 0 lên ${tw} là ${tw} độ nữa.`, visual: { kind: 'numberline', min: tc - 1, max: tw + 1, step: 1, labelEvery: 1, points: [{ at: tc }, { at: 0, color: '#F5893A' }, { at: tw }], jumps: [{ from: tc, to: 0, label: '+' + Math.abs(tc) }, { from: 0, to: tw, label: '+' + tw }], marker: { at: tc, emoji: '🐸' }, anim: 'hop' } },
               { text: `Vậy ${nw} ấm hơn ${nc} ${Math.abs(tc)} + ${tw} = ${diff} độ.`, mark: 'good' },
             ] },
           };
@@ -252,8 +252,8 @@ export default {
           hint: `${up ? 'Tăng' : 'Giảm'} nghĩa là đi ${up ? 'lên' : 'xuống'}. Đi tới vạch 0 mất mấy độ?`,
           choices, meta: { s, c, up },
           explain: { steps: [
-            { text: `Từ ${f(s)} ${up ? 'lên' : 'xuống'} tới 0 mất ${Math.abs(s)} độ.`, visual: { kind: 'numberline', min: lo, max: hi, step: 1, labelEvery: 1, points: [{ at: s }, { at: 0, color: '#FF8A3D' }], jumps: [{ from: s, to: 0, label: (up ? '+' : MI) + Math.abs(s) }], marker: { at: s, emoji: '🐸' }, anim: 'hop' } },
-            { text: `Còn ${c} − ${Math.abs(s)} = ${c - Math.abs(s)} độ nữa, ${up ? 'đi lên' : 'đi xuống'} tới ${f(right)}.`, visual: { kind: 'numberline', min: lo, max: hi, step: 1, labelEvery: 1, points: [{ at: s }, { at: 0, color: '#FF8A3D' }, { at: right }], jumps: [{ from: s, to: 0, label: (up ? '+' : MI) + Math.abs(s) }, { from: 0, to: right, label: (up ? '+' : MI) + Math.abs(right) }] } },
+            { text: `Từ ${f(s)} ${up ? 'lên' : 'xuống'} tới 0 mất ${Math.abs(s)} độ.`, visual: { kind: 'numberline', min: lo, max: hi, step: 1, labelEvery: 1, points: [{ at: s }, { at: 0, color: '#F5893A' }], jumps: [{ from: s, to: 0, label: (up ? '+' : MI) + Math.abs(s) }], marker: { at: s, emoji: '🐸' }, anim: 'hop' } },
+            { text: `Còn ${c} − ${Math.abs(s)} = ${c - Math.abs(s)} độ nữa, ${up ? 'đi lên' : 'đi xuống'} tới ${f(right)}.`, visual: { kind: 'numberline', min: lo, max: hi, step: 1, labelEvery: 1, points: [{ at: s }, { at: 0, color: '#F5893A' }, { at: right }], jumps: [{ from: s, to: 0, label: (up ? '+' : MI) + Math.abs(s) }, { from: 0, to: right, label: (up ? '+' : MI) + Math.abs(right) }] } },
             { text: `Vậy nhiệt độ buổi trưa là ${deg(right)}.`, mark: 'good', visual: th(right, [{ label: 'Sáng', value: s }, { label: 'Trưa', value: right }]) },
           ] },
         };
@@ -311,7 +311,7 @@ export default {
             meta: { mk: kind },
             explain: { steps: [
               { text: `${f(tw)} lớn hơn ${f(tc)}, nên ${nw} ấm hơn ${nc}.`, visual: th(tw, [{ label: nc, value: tc }, { label: nw, value: tw }]) },
-              { text: `Đếm số độ: từ ${f(tc)} lên 0 là ${Math.abs(tc)}, từ 0 lên ${tw} là ${tw}. Tổng ${Math.abs(tc)} + ${tw} = ${diff} độ.`, visual: { kind: 'numberline', min: tc - 1, max: tw + 1, step: 1, labelEvery: 1, points: [{ at: tc }, { at: 0, color: '#FF8A3D' }, { at: tw }], jumps: [{ from: tc, to: 0, label: '+' + Math.abs(tc) }, { from: 0, to: tw, label: '+' + tw }] } },
+              { text: `Đếm số độ: từ ${f(tc)} lên 0 là ${Math.abs(tc)}, từ 0 lên ${tw} là ${tw}. Tổng ${Math.abs(tc)} + ${tw} = ${diff} độ.`, visual: { kind: 'numberline', min: tc - 1, max: tw + 1, step: 1, labelEvery: 1, points: [{ at: tc }, { at: 0, color: '#F5893A' }, { at: tw }], jumps: [{ from: tc, to: 0, label: '+' + Math.abs(tc) }, { from: 0, to: tw, label: '+' + tw }] } },
               { text: kind === 'ok' ? `Vậy ${speaker} nói đúng.` : `Vậy ${speaker} nói sai: ${nw} ấm hơn ${nc} ${diff} độ.`, mark: 'good' },
             ] },
           };

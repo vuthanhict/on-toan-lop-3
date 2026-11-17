@@ -324,7 +324,7 @@ export default {
           hint: `Thử vài bội của ${p}: ${p}, ${2 * p}, ${3 * p}…`,
           meta: { p, q },
           explain: { steps: [
-            { text: `Bội của ${p}: ${p}, ${2 * p}, ${3 * p}, ${4 * p}…`, visual: { kind: 'grid100', n: 60, mark: [{ multipleOf: p }, { multipleOf: q, color: '#FF8A3D' }] } },
+            { text: `Bội của ${p}: ${p}, ${2 * p}, ${3 * p}, ${4 * p}…`, visual: { kind: 'grid100', n: 60, mark: [{ multipleOf: p }, { multipleOf: q, color: '#F5893A' }] } },
             isTrue
               ? { text: `${p} ÷ ${q} = ${p / q}, không dư. Nên ${p} = ${q} × ${p / q}, và mọi bội của ${p} cũng là bội của ${q}.`, mark: 'good' }
               : { text: `${p} không chia hết cho ${q}. Nên ${p} là bội của ${p} mà KHÔNG là bội của ${q}.`, mark: 'bad' },

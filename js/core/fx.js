@@ -1,7 +1,7 @@
 // Hiệu ứng: pháo giấy, xu bay vào ví, nảy số
 import { vctx } from '../visuals/index.js';
 
-const COLORS = ['#FF5A5F', '#FFC531', '#4C6FFF', '#16A765', '#8B5CF6', '#22B8CF', '#FF8A3D'];
+const COLORS = ['#EC7468', '#F7BE2C', '#4F6BED', '#218B5C', '#8B6CF0', '#3BB3C4', '#F5893A'];
 export function confetti({ x = innerWidth / 2, y = innerHeight * 0.38, n = 30 } = {}) {
   if (vctx.reduced) return;
   for (let i = 0; i < n; i++) {

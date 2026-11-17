@@ -1,18 +1,18 @@
 // Tiện ích dùng chung cho các hình của "Agent hình 1"
 // (numberline.js, thermo.js, place.js, dots.js, groups.js). Không phải visual.
 
-export const PAL = ['#4C6FFF', '#FF8A3D', '#2FBF71', '#B05CFF', '#FFC531', '#FF5C8A', '#22B8CF', '#8D6E63'];
+export const PAL = ['#4F6BED', '#F5893A', '#34B27B', '#8B6CF0', '#F7BE2C', '#EC7468', '#3BB3C4', '#5D6985'];
 
 export const C = {
-  primary: 'var(--c-primary,#4C6FFF)',
-  accent: 'var(--c-accent,#FF8A3D)',
-  ok: 'var(--c-ok,#2FBF71)',
-  warn: 'var(--c-warn,#FFC531)',
-  ink: 'var(--c-ink,#2B2A3A)',
-  bg: 'var(--c-bg,#FFF8EC)',
-  card: 'var(--c-card,#FFFFFF)',
-  line: 'var(--c-line,#E7DCC6)',
-  soft: 'var(--c-soft,#EEF1FF)',
+  primary: 'var(--c-primary,#4F6BED)',
+  accent: 'var(--c-accent,#F5893A)',
+  ok: 'var(--c-ok,#1F8456)',
+  warn: 'var(--c-warn,#EC7468)',
+  ink: 'var(--c-ink,#263250)',
+  bg: 'var(--c-bg,#FAF6EE)',
+  card: 'var(--c-card,#FFFEFB)',
+  line: 'var(--c-line,#E8E1D2)',
+  soft: 'var(--c-soft,#E8EDFF)',
 };
 
 export const FONT = "'Baloo 2','Nunito',system-ui,-apple-system,'Segoe UI',Roboto,sans-serif";
@@ -93,11 +93,11 @@ export function say(n) {
 /** Màu chữ tương phản trên nền hex. */
 export function inkOn(hex) {
   const m = /^#?([0-9a-f]{6})$/i.exec(hex || '');
-  if (!m) return '#fff';
+  if (!m) return '#FFFFFF';
   const n = parseInt(m[1], 16);
   const r = (n >> 16) & 255, g = (n >> 8) & 255, b = n & 255;
   const l = 0.299 * r + 0.587 * g + 0.114 * b;
-  return l > 165 ? '#2B2A3A' : '#FFFFFF';
+  return l > 165 ? '#263250' : '#FFFFFF';
 }
 
 export function palOf(ctx) {

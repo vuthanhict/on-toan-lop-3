@@ -152,14 +152,14 @@ function renderNumberline(spec, ctx) {
     const col = p.color || pal[i % pal.length];
     const cx = x(v);
     const g = s('g', { class: 'v-numberline-pop' });
-    g.appendChild(s('circle', { cx, cy: axisY, r: 10, fill: p.hidden ? '#fff' : col, stroke: p.hidden ? col : '#fff', 'stroke-width': p.hidden ? 3.5 : 3.5, 'stroke-dasharray': p.hidden ? '5 4' : null }));
+    g.appendChild(s('circle', { cx, cy: axisY, r: 10, fill: p.hidden ? '#FFFFFF' : col, stroke: p.hidden ? col : '#FFFFFF', 'stroke-width': p.hidden ? 3.5 : 3.5, 'stroke-dasharray': p.hidden ? '5 4' : null }));
     if (!p.hidden) g.appendChild(s('circle', { cx, cy: axisY, r: 12.5, fill: 'none', stroke: col, 'stroke-width': 2 }));
     if (p.label || p.hidden) {
       const txt = p.hidden ? '?' : String(p.label);
       const w = Math.max(30, estW(txt, 17) + 16);
       const by = axisY + 58;
       g.appendChild(s('path', { d: `M${cx},${axisY + 42} L${cx},${by - 2}`, stroke: col, 'stroke-width': 2.5, 'stroke-dasharray': '2 4', 'stroke-linecap': 'round' }));
-      g.appendChild(s('rect', { x: cx - w / 2, y: by - 2, width: w, height: 30, rx: 15, fill: p.hidden ? '#FFF6D1' : col, stroke: p.hidden ? col : 'none', 'stroke-width': 2.5, 'stroke-dasharray': p.hidden ? '5 4' : null }));
+      g.appendChild(s('rect', { x: cx - w / 2, y: by - 2, width: w, height: 30, rx: 15, fill: p.hidden ? '#FFE9A8' : col, stroke: p.hidden ? col : 'none', 'stroke-width': 2.5, 'stroke-dasharray': p.hidden ? '5 4' : null }));
       g.appendChild(s('text', { x: cx, y: by + 20, 'text-anchor': 'middle', 'font-size': 17, 'font-weight': 800, fill: p.hidden ? C.ink : inkOn(col) }, txt));
     }
     ptG.appendChild(g);
@@ -175,7 +175,7 @@ function renderNumberline(spec, ctx) {
     const hh = arcH(j);
     const y0 = axisY - 13;
     const dir = t >= f ? 1 : -1;
-    const col = dir > 0 ? '#FF8A3D' : '#B05CFF';
+    const col = dir > 0 ? '#F5893A' : '#8B6CF0';
     const g = s('g');
     const d = `M${x1},${y0} C${x1},${y0 - hh * 1.33} ${x2},${y0 - hh * 1.33} ${x2},${y0 - 2}`;
     const path = s('path', { d, fill: 'none', stroke: col, 'stroke-width': 4, 'stroke-linecap': 'round', pathLength: 1, 'stroke-dasharray': '1 1' });
@@ -187,7 +187,7 @@ function renderNumberline(spec, ctx) {
       const w = Math.max(38, estW(lab, 17) + 16);
       const cx = (x1 + x2) / 2, cy = y0 - hh * 0.99 - 3;
       labEl = s('g');
-      labEl.appendChild(s('rect', { x: cx - w / 2, y: cy - 14, width: w, height: 26, rx: 13, fill: '#fff', stroke: col, 'stroke-width': 3 }));
+      labEl.appendChild(s('rect', { x: cx - w / 2, y: cy - 14, width: w, height: 26, rx: 13, fill: '#FFFFFF', stroke: col, 'stroke-width': 3 }));
       labEl.appendChild(s('text', { x: cx, y: cy + 5, 'text-anchor': 'middle', 'font-size': 17, 'font-weight': 800, fill: C.ink }, lab));
       g.appendChild(labEl);
     }
@@ -202,7 +202,7 @@ function renderNumberline(spec, ctx) {
   const mkY = axisY - 15;
   if (marker) {
     mk = s('g');
-    mk.appendChild(s('ellipse', { cx: mkX, cy: axisY - 11, rx: 13, ry: 4, fill: '#000', opacity: 0.14 }));
+    mk.appendChild(s('ellipse', { cx: mkX, cy: axisY - 11, rx: 13, ry: 4, fill: '#263250', opacity: 0.14 }));
     mk.appendChild(s('text', { x: mkX, y: mkY, 'text-anchor': 'middle', 'font-size': 32, style: { fontFamily: `'Apple Color Emoji','Segoe UI Emoji','Noto Color Emoji',sans-serif` } }, marker.emoji));
     svg.appendChild(mk);
   }
@@ -310,13 +310,13 @@ function renderSequence(spec, ctx) {
     const hi = hl.has(i);
     const g = s('g', { class: 'v-sequence-pop' });
     const col = hi ? pal[1] : pal[0];
-    g.appendChild(s('rect', { x: p.x, y: p.top + 4, width: p.w, height: cellH, rx: 14, fill: '#000', opacity: 0.08 }));
+    g.appendChild(s('rect', { x: p.x, y: p.top + 4, width: p.w, height: cellH, rx: 14, fill: '#263250', opacity: 0.08 }));
     g.appendChild(s('rect', {
       x: p.x, y: p.top, width: p.w, height: cellH, rx: 14,
-      fill: q ? '#FFF6D1' : (hi ? '#FFE9D6' : '#fff'),
+      fill: q ? '#FFE9A8' : (hi ? '#FFDDBD' : '#FFFFFF'),
       stroke: q ? pal[4] : col, 'stroke-width': 3.5, 'stroke-dasharray': q ? '7 5' : null,
     }));
-    g.appendChild(s('text', { x: p.x + p.w / 2, y: p.top + cellH / 2 + 8, 'text-anchor': 'middle', 'font-size': q ? 28 : fs, 'font-weight': 800, fill: q ? '#B35F00' : C.ink }, t));
+    g.appendChild(s('text', { x: p.x + p.w / 2, y: p.top + cellH / 2 + 8, 'text-anchor': 'middle', 'font-size': q ? 28 : fs, 'font-weight': 800, fill: q ? '#D96A1C' : C.ink }, t));
     svg.appendChild(g);
     cellEls.push(g);
   });
@@ -330,7 +330,7 @@ function renderSequence(spec, ctx) {
       g.appendChild(s('line', { x1, y1: y, x2, y2: y, stroke: C.ink, 'stroke-width': 3.5, 'stroke-linecap': 'round', 'marker-end': `url(#${mid})` }));
       if (lab) {
         const w = Math.max(30, estW(lab, 16) + 12);
-        g.appendChild(s('rect', { x: (x1 + x2) / 2 - w / 2, y: y - 36, width: w, height: 24, rx: 12, fill: '#E8F8EF', stroke: pal[2], 'stroke-width': 2.5 }));
+        g.appendChild(s('rect', { x: (x1 + x2) / 2 - w / 2, y: y - 36, width: w, height: 24, rx: 12, fill: '#E1F5EC', stroke: pal[2], 'stroke-width': 2.5 }));
         g.appendChild(s('text', { x: (x1 + x2) / 2, y: y - 18, 'text-anchor': 'middle', 'font-size': 16, 'font-weight': 800, fill: C.ink }, lab));
       }
     } else {
@@ -340,7 +340,7 @@ function renderSequence(spec, ctx) {
       g.appendChild(s('path', { d: `M${x1},${y1} L${x1},${ym} L${x2},${ym} L${x2},${y2}`, fill: 'none', stroke: C.ink, 'stroke-width': 3.5, 'stroke-linecap': 'round', 'stroke-linejoin': 'round', 'marker-end': `url(#${mid})` }));
       if (lab) {
         const w = Math.max(30, estW(lab, 16) + 12);
-        g.appendChild(s('rect', { x: (x1 + x2) / 2 - w / 2, y: ym - 13, width: w, height: 24, rx: 12, fill: '#E8F8EF', stroke: pal[2], 'stroke-width': 2.5 }));
+        g.appendChild(s('rect', { x: (x1 + x2) / 2 - w / 2, y: ym - 13, width: w, height: 24, rx: 12, fill: '#E1F5EC', stroke: pal[2], 'stroke-width': 2.5 }));
         g.appendChild(s('text', { x: (x1 + x2) / 2, y: ym + 5, 'text-anchor': 'middle', 'font-size': 16, 'font-weight': 800, fill: C.ink }, lab));
       }
     }

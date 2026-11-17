@@ -4,20 +4,20 @@ import { COL, PAL, pal, el, svgRoot, safe, num, int, arr, textOn, ensureStyle, s
 const CSS = `
 .v-venn text,.v-grid100 text,.v-balance text,.v-factorpairs text{font-family:inherit}
 .v-table-wrap{width:100%;max-width:480px;margin:0 auto;overflow-x:auto;-webkit-overflow-scrolling:touch}
-.v-table-t{width:100%;border-collapse:separate;border-spacing:0;font-size:17px;font-weight:700;color:var(--c-ink,#2B2A3A);background:#fff;border:3px solid var(--c-line,#E7DCC6);border-radius:16px;overflow:hidden}
-.v-table-t th{background:var(--c-primary,#4C6FFF);color:#fff;font-size:16px;font-weight:900;padding:10px 8px;text-align:center;border-right:2px solid rgba(255,255,255,.35)}
+.v-table-t{width:100%;border-collapse:separate;border-spacing:0;font-size:17px;font-weight:700;color:var(--c-ink,#263250);background:#FFFFFF;border:3px solid var(--c-line,#E8E1D2);border-radius:16px;overflow:hidden}
+.v-table-t th{background:var(--c-primary,#4F6BED);color:#FFFFFF;font-size:16px;font-weight:900;padding:10px 8px;text-align:center;border-right:2px solid rgba(255,255,255,.35)}
 .v-table-t th:last-child{border-right:0}
-.v-table-t td{padding:10px 8px;text-align:center;border-top:2px solid var(--c-line,#E7DCC6);border-right:2px solid var(--c-line,#E7DCC6);min-width:44px}
+.v-table-t td{padding:10px 8px;text-align:center;border-top:2px solid var(--c-line,#E8E1D2);border-right:2px solid var(--c-line,#E8E1D2);min-width:44px}
 .v-table-t td:last-child{border-right:0}
-.v-table-t tbody tr:nth-child(even) td{background:var(--c-soft,#EEF1FF)}
-.v-table-t td.v-table-hl{background:#FFE08A!important;box-shadow:inset 0 0 0 3px var(--c-accent,#FF8A3D)}
-.v-table-q{display:inline-block;min-width:34px;padding:2px 10px;border-radius:10px;border:3px dashed var(--c-accent,#FF8A3D);color:var(--c-accent,#FF8A3D);font-weight:900;background:#fff}
-.v-bubble-root{display:flex;align-items:flex-start;gap:12px;width:100%;max-width:480px;margin:0 auto;font-family:inherit;color:var(--c-ink,#2B2A3A)}
+.v-table-t tbody tr:nth-child(even) td{background:var(--c-soft,#E8EDFF)}
+.v-table-t td.v-table-hl{background:#FBDF86!important;box-shadow:inset 0 0 0 3px var(--c-accent,#F5893A)}
+.v-table-q{display:inline-block;min-width:34px;padding:2px 10px;border-radius:10px;border:3px dashed var(--c-accent,#F5893A);color:var(--c-accent,#F5893A);font-weight:900;background:#FFFFFF}
+.v-bubble-root{display:flex;align-items:flex-start;gap:12px;width:100%;max-width:480px;margin:0 auto;font-family:inherit;color:var(--c-ink,#263250)}
 .v-bubble-who{flex:0 0 auto;display:flex;flex-direction:column;align-items:center;gap:2px;min-width:64px}
-.v-bubble-av{width:58px;height:58px;border-radius:50%;background:var(--c-soft,#EEF1FF);border:3px solid var(--c-primary,#4C6FFF);display:flex;align-items:center;justify-content:center;font-size:32px;line-height:1}
+.v-bubble-av{width:58px;height:58px;border-radius:50%;background:var(--c-soft,#E8EDFF);border:3px solid var(--c-primary,#4F6BED);display:flex;align-items:center;justify-content:center;font-size:32px;line-height:1}
 .v-bubble-name{font-size:15px;font-weight:900}
-.v-bubble-txt{position:relative;flex:1 1 auto;background:#fff;border:3px solid var(--c-primary,#4C6FFF);border-radius:20px;padding:12px 14px;font-size:18px;line-height:1.45;font-weight:600;margin-top:6px}
-.v-bubble-txt::before{content:"";position:absolute;left:-11px;top:16px;width:16px;height:16px;background:#fff;border-left:3px solid var(--c-primary,#4C6FFF);border-bottom:3px solid var(--c-primary,#4C6FFF);transform:rotate(45deg)}
+.v-bubble-txt{position:relative;flex:1 1 auto;background:#FFFFFF;border:3px solid var(--c-primary,#4F6BED);border-radius:20px;padding:12px 14px;font-size:18px;line-height:1.45;font-weight:600;margin-top:6px}
+.v-bubble-txt::before{content:"";position:absolute;left:-11px;top:16px;width:16px;height:16px;background:#FFFFFF;border-left:3px solid var(--c-primary,#4F6BED);border-bottom:3px solid var(--c-primary,#4F6BED);transform:rotate(45deg)}
 .v-emoji-root{width:100%;text-align:center;font-size:44px;line-height:1.3;letter-spacing:.06em;word-break:break-word;font-family:inherit}
 `;
 
@@ -46,7 +46,7 @@ function venn(spec, ctx) {
   const show = (v) => (hide.has(String(v)) ? 'ô trống' : String(v));
   const label = `Sơ đồ Venn. Vòng ${A.label || 'A'}: ${aOnly.map(show).join(', ') || 'không có số riêng'}. Vòng ${B.label || 'B'}: ${bOnly.map(show).join(', ') || 'không có số riêng'}. Phần chung: ${both.map(show).join(', ') || 'trống'}.` + (outside.length ? ` Ngoài hai vòng: ${outside.map(show).join(', ')}.` : '');
   const svg = svgRoot(360, 276, label, 'v-venn', 480);
-  svg.appendChild(el('rect', { x: 4, y: 4, width: 352, height: 268, rx: 18, fill: '#fff', stroke: COL.line, 'stroke-width': 3 }));
+  svg.appendChild(el('rect', { x: 4, y: 4, width: 352, height: 268, rx: 18, fill: '#FFFFFF', stroke: COL.line, 'stroke-width': 3 }));
   const c1 = 130, c2 = 230, cy = 150, r = 88;
   svg.appendChild(el('circle', { cx: c1, cy, r, fill: colA, 'fill-opacity': 0.3, stroke: colA, 'stroke-width': 4 }));
   svg.appendChild(el('circle', { cx: c2, cy, r, fill: colB, 'fill-opacity': 0.3, stroke: colB, 'stroke-width': 4 }));
@@ -58,7 +58,7 @@ function venn(spec, ctx) {
     const t = q ? '?' : String(v);
     const w = Math.max(32, t.length * 13 + 14);
     const c = el('g', null);
-    c.appendChild(el('rect', { x: x - w / 2, y: y - 15, width: w, height: 30, rx: 10, fill: '#fff', stroke: q ? COL.accent : 'rgba(43,42,58,.28)', 'stroke-width': q ? 3 : 2, 'stroke-dasharray': q ? '5 3' : '' }));
+    c.appendChild(el('rect', { x: x - w / 2, y: y - 15, width: w, height: 30, rx: 10, fill: '#FFFFFF', stroke: q ? COL.accent : 'rgba(43,42,58,.28)', 'stroke-width': q ? 3 : 2, 'stroke-dasharray': q ? '5 3' : '' }));
     c.appendChild(el('text', { x, y: y + 7, 'text-anchor': 'middle', 'font-size': 20, 'font-weight': 900, fill: q ? COL.accent : COL.ink, text: t }));
     g.appendChild(c);
   };
@@ -103,7 +103,7 @@ function grid100(spec, ctx) {
     const x = x0 + c * cs, y = y0 + r * cs;
     const ms = marks.filter((m) => v % m.k === 0);
     const g = el('g', null);
-    g.appendChild(el('rect', { x, y, width: cs, height: cs, fill: '#fff', stroke: '#D5D0E3', 'stroke-width': 1.6 }));
+    g.appendChild(el('rect', { x, y, width: cs, height: cs, fill: '#FFFFFF', stroke: '#B8C1D6', 'stroke-width': 1.6 }));
     const q = hide.has(v);
     if (ms.length && !q) {
       const f = el('rect', { x: x + 1, y: y + 1, width: cs - 2, height: cs - 2, fill: ms[0].color, 'fill-opacity': 0.6 });
@@ -113,7 +113,7 @@ function grid100(spec, ctx) {
     }
     g.appendChild(el('text', { x: x + cs / 2, y: y + cs / 2 + 5.5, 'text-anchor': 'middle', 'font-size': v >= 100 ? 14 : 15, 'font-weight': ms.length ? 900 : 700, fill: q ? COL.accent : COL.ink, text: q ? '?' : String(v) }));
     if (q) g.appendChild(el('rect', { x: x + 2, y: y + 2, width: cs - 4, height: cs - 4, rx: 6, fill: 'none', stroke: COL.accent, 'stroke-width': 2.5, 'stroke-dasharray': '4 3' }));
-    if (circles.has(v)) g.appendChild(el('circle', { cx: x + cs / 2, cy: y + cs / 2, r: cs / 2 - 1.5, fill: 'none', stroke: '#E0457B', 'stroke-width': 3.5 }));
+    if (circles.has(v)) g.appendChild(el('circle', { cx: x + cs / 2, cy: y + cs / 2, r: cs / 2 - 1.5, fill: 'none', stroke: '#EC7468', 'stroke-width': 3.5 }));
     svg.appendChild(g);
   }
   ensureStyle('v2-misc', CSS);
@@ -148,8 +148,8 @@ function balance(spec, ctx) {
   const label = `Cân đĩa. ${tilt === 'level' ? 'Hai bên thăng bằng' : tilt === 'left' ? 'Bên trái nặng hơn, đĩa trái thấp xuống' : 'Bên phải nặng hơn, đĩa phải thấp xuống'}. Đĩa trái: ${itemTxt(L) || 'trống'}. Đĩa phải: ${itemTxt(R) || 'trống'}.`;
   const svg = svgRoot(360, H, label, 'v-balance', 440);
   // chân đế
-  svg.appendChild(el('rect', { x: px - 7, y: pY, width: 14, height: H - pY - 20, rx: 5, fill: '#8D6E63' }));
-  svg.appendChild(el('path', { d: `M${px - 56} ${H - 6}Q${px - 50} ${H - 26} ${px - 20} ${H - 26}L${px + 20} ${H - 26}Q${px + 50} ${H - 26} ${px + 56} ${H - 6}Z`, fill: '#8D6E63', stroke: COL.ink, 'stroke-width': 3, 'stroke-linejoin': 'round' }));
+  svg.appendChild(el('rect', { x: px - 7, y: pY, width: 14, height: H - pY - 20, rx: 5, fill: '#5D6985' }));
+  svg.appendChild(el('path', { d: `M${px - 56} ${H - 6}Q${px - 50} ${H - 26} ${px - 20} ${H - 26}L${px + 20} ${H - 26}Q${px + 50} ${H - 26} ${px + 56} ${H - 6}Z`, fill: '#5D6985', stroke: COL.ink, 'stroke-width': 3, 'stroke-linejoin': 'round' }));
   const endPos = (side, phi) => { const a = phi * Math.PI / 180; return side < 0 ? [px - Lb * Math.cos(a), pY - Lb * Math.sin(a)] : [px + Lb * Math.cos(a), pY + Lb * Math.sin(a)]; };
   // đòn cân (vẽ nằm ngang, xoay bằng transform)
   const beam = el('g', { transform: `rotate(${phiF} ${px} ${pY})` });
@@ -165,8 +165,8 @@ function balance(spec, ctx) {
     const pxc = side < 0 ? px - Lb : px + Lb;
     const top = ey + S;
     const g = el('g', null);
-    g.appendChild(el('line', { x1: ex, y1: ey, x2: pxc - pw / 2 + 4, y2: top, stroke: '#6B6880', 'stroke-width': 2.5, 'stroke-linecap': 'round' }));
-    g.appendChild(el('line', { x1: ex, y1: ey, x2: pxc + pw / 2 - 4, y2: top, stroke: '#6B6880', 'stroke-width': 2.5, 'stroke-linecap': 'round' }));
+    g.appendChild(el('line', { x1: ex, y1: ey, x2: pxc - pw / 2 + 4, y2: top, stroke: '#5D6985', 'stroke-width': 2.5, 'stroke-linecap': 'round' }));
+    g.appendChild(el('line', { x1: ex, y1: ey, x2: pxc + pw / 2 - 4, y2: top, stroke: '#5D6985', 'stroke-width': 2.5, 'stroke-linecap': 'round' }));
     items.forEach((it, i) => {
       const r = Math.floor(i / perRow), c = i % perRow;
       const inRow = Math.min(perRow, items.length - r * perRow);
@@ -186,7 +186,7 @@ function balance(spec, ctx) {
         g.appendChild(el('text', { x, y: yb - (sh === 2 ? 6 : sz / 2 - 6), 'text-anchor': 'middle', 'font-size': txt.length > 3 ? 14 : 18, 'font-weight': 900, fill: tc, text: txt }));
       }
     });
-    g.appendChild(el('path', { d: `M${pxc - pw / 2} ${top}H${pxc + pw / 2}Q${pxc + pw / 2 - 8} ${top + 18} ${pxc} ${top + 18}Q${pxc - pw / 2 + 8} ${top + 18} ${pxc - pw / 2} ${top}Z`, fill: '#FFD98A', stroke: COL.ink, 'stroke-width': 3.5, 'stroke-linejoin': 'round' }));
+    g.appendChild(el('path', { d: `M${pxc - pw / 2} ${top}H${pxc + pw / 2}Q${pxc + pw / 2 - 8} ${top + 18} ${pxc} ${top + 18}Q${pxc - pw / 2 + 8} ${top + 18} ${pxc - pw / 2} ${top}Z`, fill: '#FBDF86', stroke: COL.ink, 'stroke-width': 3.5, 'stroke-linejoin': 'round' }));
     svg.appendChild(g);
     return g;
   };
@@ -273,7 +273,7 @@ function factorpairs(spec, ctx) {
   cards.forEach((c) => {
     const col = pal(ctx, c.i);
     const g = el('g', null);
-    g.appendChild(el('rect', { x: c.x, y: c.y, width: c.cw, height: c.ch, rx: 14, fill: '#fff', stroke: COL.line, 'stroke-width': 3 }));
+    g.appendChild(el('rect', { x: c.x, y: c.y, width: c.cw, height: c.ch, rx: 14, fill: '#FFFFFF', stroke: COL.line, 'stroke-width': 3 }));
     const t = el('text', { x: c.x + c.cw / 2, y: c.y + 24, 'text-anchor': 'middle', 'font-size': 18, 'font-weight': 900, fill: COL.ink });
     [[String(c.a), COL.accent], [' × ', COL.ink], [String(c.b), COL.primary], [' = ' + n, COL.ink]].forEach(([s, f]) => {
       const ts = document.createElementNS('http://www.w3.org/2000/svg', 'tspan');

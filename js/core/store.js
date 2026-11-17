@@ -4,7 +4,7 @@ let mem = null;
 function todayStr() { const d = new Date(); return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); }
 
 function blank() {
-  return { v: 2, topics: {}, wrong: [], streak: { last: '', count: 0 }, settings: { voice: true, lite: false, sound: true }, exam: { best: 0, tries: 0 }, start: todayStr(), seed: Math.floor(Math.random() * 1e6),
+  return { v: 2, topics: {}, wrong: [], streak: { last: '', count: 0 }, settings: { voice: true, lite: false, sound: true, eye: 'auto' }, exam: { best: 0, tries: 0 }, start: todayStr(), seed: Math.floor(Math.random() * 1e6),
     coins: 0, xp: 0, badges: [], wardrobe: { equipped: {} }, quests: { date: '', correct: 0, topics: 0, learned: 0, chest: false, noted: [] },
     stats: { correct: 0, first: 0, bestCombo: 0, fixed: 0, learned: 0 } };
 }

@@ -48,8 +48,8 @@ function renderThermo(spec, ctx) {
 
   // nền vùng âm / dương
   const y0 = y(clamp(0, min, max));
-  if (min < 0) svg.appendChild(s('rect', { x: 0, y: max < 0 ? yTop - 14 : y0, width: W, height: yBot + 26 - (max < 0 ? yTop - 14 : y0), rx: 0, fill: '#E3F2FF', opacity: 0.8 }));
-  if (max > 0) svg.appendChild(s('rect', { x: 0, y: yTop - 14, width: W, height: (min < 0 ? y0 : yBot + 26) - (yTop - 14), fill: '#FFF1DA', opacity: 0.75 }));
+  if (min < 0) svg.appendChild(s('rect', { x: 0, y: max < 0 ? yTop - 14 : y0, width: W, height: yBot + 26 - (max < 0 ? yTop - 14 : y0), rx: 0, fill: '#E8EDFF', opacity: 0.8 }));
+  if (max > 0) svg.appendChild(s('rect', { x: 0, y: yTop - 14, width: W, height: (min < 0 ? y0 : yBot + 26) - (yTop - 14), fill: '#FFDDBD', opacity: 0.75 }));
   const emo = { style: { fontFamily: `'Apple Color Emoji','Segoe UI Emoji','Noto Color Emoji',sans-serif` }, 'text-anchor': 'middle' };
   if (min < 0) svg.appendChild(s('text', Object.assign({ x: 22, y: Math.min(yBot - 4, (Math.max(y0, yTop) + yBot) / 2 + 8), 'font-size': 22 }, emo), '❄'));
   if (max > 0) svg.appendChild(s('text', Object.assign({ x: 22, y: Math.max(yTop + 14, (yTop + Math.min(y0, yBot)) / 2 + 8), 'font-size': 22 }, emo), '☀'));
@@ -64,7 +64,7 @@ function renderThermo(spec, ctx) {
     g.appendChild(s('circle', { cx: tx, cy: bulbY, r: bulbR, fill, stroke, 'stroke-width': sw }));
     return g;
   };
-  svg.appendChild(glass('#B9C2D8', '#B9C2D8', 8));
+  svg.appendChild(glass('#B8C1D6', '#B8C1D6', 8));
   svg.appendChild(glass('#FFFFFF', 'none', 0));
 
   // vạch chia
@@ -77,7 +77,7 @@ function renderThermo(spec, ctx) {
     const yy = y(v);
     const lab = isLab(i) || Math.abs(v) < 1e-9;
     const isZero = Math.abs(v) < 1e-9;
-    svg.appendChild(s('line', { x1: tx - tw / 2 - (lab ? 12 : 7), y1: yy, x2: tx - tw / 2 + 2, y2: yy, stroke: isZero ? C.ink : '#5B5870', 'stroke-width': isZero ? 3.5 : lab ? 2.5 : 1.8, 'stroke-linecap': 'round' }));
+    svg.appendChild(s('line', { x1: tx - tw / 2 - (lab ? 12 : 7), y1: yy, x2: tx - tw / 2 + 2, y2: yy, stroke: isZero ? C.ink : '#5D6985', 'stroke-width': isZero ? 3.5 : lab ? 2.5 : 1.8, 'stroke-linecap': 'round' }));
     if (lab && !(labGap > 1 && !isZero && Math.abs(yy - y(0)) < 17 && min < 0 && max > 0)) {
       svg.appendChild(s('text', { x: tx - tw / 2 - 17, y: yy + 5.5, 'text-anchor': 'end', 'font-size': fs, 'font-weight': isZero ? 800 : 700, fill: C.ink }, fmt(v, 100000)));
     }
@@ -88,13 +88,13 @@ function renderThermo(spec, ctx) {
 
   // thuỷ ngân
   const merc = s('g', { class: 'v-thermo-merc' });
-  const mc = '#FF4D6D';
+  const mc = '#EC7468';
   const ly = y(level);
   merc.appendChild(s('rect', { x: tx - 7, y: ly, width: 14, height: bulbY - ly, fill: mc }));
   merc.appendChild(s('circle', { cx: tx, cy: ly, r: 7, fill: mc }));
   svg.appendChild(s('circle', { cx: tx, cy: bulbY, r: bulbR - 6, fill: mc }));
   svg.appendChild(merc);
-  svg.appendChild(s('ellipse', { cx: tx - 2.5, cy: bulbY - 6, rx: 4, ry: 7, fill: '#fff', opacity: 0.45 }));
+  svg.appendChild(s('ellipse', { cx: tx - 2.5, cy: bulbY - 6, rx: 4, ry: 7, fill: '#FFFFFF', opacity: 0.45 }));
 
   let levelPill = null;
   if (explicitLevel) {
@@ -103,7 +103,7 @@ function renderThermo(spec, ctx) {
     levelPill = s('g', { class: 'v-thermo-card' });
     levelPill.appendChild(s('path', { d: `M${tx + tw / 2 + 2},${ly} l12,-9 v18z`, fill: mc }));
     levelPill.appendChild(s('rect', { x: tx + tw / 2 + 12, y: ly - 14, width: w, height: 28, rx: 14, fill: mc }));
-    levelPill.appendChild(s('text', { x: tx + tw / 2 + 12 + w / 2, y: ly + 6, 'text-anchor': 'middle', 'font-size': 17, 'font-weight': 800, fill: '#fff' }, t));
+    levelPill.appendChild(s('text', { x: tx + tw / 2 + 12 + w / 2, y: ly + 6, 'text-anchor': 'middle', 'font-size': 17, 'font-weight': 800, fill: '#FFFFFF' }, t));
   }
 
   // thẻ gắn cạnh
@@ -122,7 +122,7 @@ function renderThermo(spec, ctx) {
       const g = s('g', { class: 'v-thermo-card' });
       const ink = inkOn(col);
       g.appendChild(s('path', { d: `M${tx + tw / 2},${o.yv} H${cardX - 26} L${cardX - 8},${o.yc}`, fill: 'none', stroke: col, 'stroke-width': 3, 'stroke-linecap': 'round', 'stroke-linejoin': 'round', 'stroke-dasharray': '1 6' }));
-      g.appendChild(s('circle', { cx: tx + tw / 2 - 1, cy: o.yv, r: 5.5, fill: col, stroke: '#fff', 'stroke-width': 2 }));
+      g.appendChild(s('circle', { cx: tx + tw / 2 - 1, cy: o.yv, r: 5.5, fill: col, stroke: '#FFFFFF', 'stroke-width': 2 }));
       g.appendChild(s('rect', { x: cardX - 8, y: o.yc - cardH / 2, width: cardW + 8, height: cardH, rx: 12, fill: col }));
       const lab = String(o.it.label == null ? '' : o.it.label);
       const vt = fmt(o.v, 100000) + '°C';

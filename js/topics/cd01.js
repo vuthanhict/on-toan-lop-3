@@ -17,7 +17,7 @@ export default {
       visual: { kind: 'sequence', items: [5, 9, 13, 17, '?'], arrowLabels: ['+4', '+4', '+4', '+4'], anim: 'reveal' } },
     { text: 'Đi qua số 0 vẫn nhảy đúng bước: −8, −4, 0, 4. Đừng bỏ quên số 0!',
       visual: { kind: 'numberline', min: -12, max: 8, step: 1, labelEvery: 4,
-        points: [{ at: -8 }, { at: -4 }, { at: 0, color: '#FF8A3D' }, { at: 4 }],
+        points: [{ at: -8 }, { at: -4 }, { at: 0, color: '#F5893A' }, { at: 4 }],
         jumps: [{ from: -8, to: -4, label: '+4' }, { from: -4, to: 0, label: '+4' }, { from: 0, to: 4, label: '+4' }],
         marker: { at: -8, emoji: '🐸' }, anim: 'hop' } },
     { text: 'Số chính phương là số xếp chấm tròn được thành hình vuông: 1, 4, 9, 16, 25. Mỗi số là một số nhân với chính nó, ví dụ 3 × 3 = 9.',
@@ -36,7 +36,7 @@ export default {
       visual: { kind: 'sequence', items: [100, 90, 80, 70, '?'], arrowLabels: ['−10', '−10', '−10', '−10'], highlight: [4], anim: 'reveal' } },
     { text: 'Qua số 0 thì ếch vẫn nhảy +4: −8, −4, 0, 4. Có số 0 ở giữa, đừng nhảy bỏ qua nó nhé!',
       visual: { kind: 'numberline', min: -12, max: 8, step: 1, labelEvery: 4,
-        points: [{ at: -8 }, { at: -4 }, { at: 0, color: '#FF8A3D', label: '0' }, { at: 4 }],
+        points: [{ at: -8 }, { at: -4 }, { at: 0, color: '#F5893A', label: '0' }, { at: 4 }],
         jumps: [{ from: -8, to: -4, label: '+4' }, { from: -4, to: 0, label: '+4' }, { from: 0, to: 4, label: '+4' }],
         marker: { at: -8, emoji: '🐸' }, anim: 'hop' } },
     { text: 'Dãy 1, 3, 6, 10: bước nhảy là +2, +3, +4… cứ đổi hoài. Bước không đều nên đây KHÔNG phải dãy cách đều.', mark: 'bad',
@@ -98,7 +98,7 @@ export default {
       explain: { steps: [
         { text: 'Đếm trên tia số: từ −12 lên −8 là 4 bước. Vậy bước nhảy là +4.', visual: { kind: 'numberline', min: -24, max: 12, step: 4, labelEvery: 4, points: [{ at: -12 }, { at: -8 }, { at: -4 }], jumps: [{ from: -12, to: -8, label: '+4' }, { from: -8, to: -4, label: '+4' }] } },
         { text: 'Đi về bên trái số −12 thì trừ 4: −12 − 4 = −16, rồi −16 − 4 = −20.', visual: { kind: 'numberline', min: -24, max: 12, step: 4, labelEvery: 4, points: [{ at: -20 }, { at: -16 }, { at: -12 }], jumps: [{ from: -20, to: -16, label: '+4' }, { from: -16, to: -12, label: '+4' }] } },
-        { text: 'Đi về bên phải số −4 thì cộng 4: −4 + 4 = 0, rồi 4, rồi 8. Không bỏ số 0!', visual: { kind: 'numberline', min: -24, max: 12, step: 4, labelEvery: 4, points: [{ at: -4 }, { at: 0, color: '#FF8A3D' }, { at: 4 }, { at: 8 }], jumps: [{ from: -4, to: 0, label: '+4' }, { from: 0, to: 4, label: '+4' }, { from: 4, to: 8, label: '+4' }], marker: { at: -4, emoji: '🐸' }, anim: 'hop' } },
+        { text: 'Đi về bên phải số −4 thì cộng 4: −4 + 4 = 0, rồi 4, rồi 8. Không bỏ số 0!', visual: { kind: 'numberline', min: -24, max: 12, step: 4, labelEvery: 4, points: [{ at: -4 }, { at: 0, color: '#F5893A' }, { at: 4 }, { at: 8 }], jumps: [{ from: -4, to: 0, label: '+4' }, { from: 0, to: 4, label: '+4' }, { from: 4, to: 8, label: '+4' }], marker: { at: -4, emoji: '🐸' }, anim: 'hop' } },
         { text: 'Vậy các số cần điền là −20, −16, 0, 4, 8.', mark: 'good', visual: { kind: 'sequence', items: [-20, -16, -12, -8, -4, 0, 4, 8], arrowLabels: arrows(7, '+4'), highlight: [0, 1, 5, 6, 7] } },
       ] },
     },
@@ -134,7 +134,7 @@ export default {
       ],
       explain: { steps: [
         { text: 'Đếm tiếp từ 125, mỗi lần cộng 25: 150, 175, 200, 225, 250.', visual: { kind: 'numberline', min: 100, max: 275, step: 25, labelEvery: 25, points: [{ at: 125 }, { at: 150 }, { at: 175 }, { at: 200 }, { at: 225 }, { at: 250 }], jumps: [{ from: 125, to: 150, label: '+25' }, { from: 150, to: 175, label: '+25' }, { from: 175, to: 200, label: '+25' }, { from: 200, to: 225, label: '+25' }, { from: 225, to: 250, label: '+25' }], marker: { at: 125, emoji: '🐸' }, anim: 'hop' } },
-        { text: 'Các số 175, 200, 250 đều gặp trong lúc đếm. Số 235 nằm giữa 225 và 250, ếch nhảy qua mà không đáp xuống.', visual: { kind: 'numberline', min: 200, max: 275, step: 25, labelEvery: 25, points: [{ at: 225 }, { at: 235, hidden: true, color: '#FF5C8A' }, { at: 250 }] } },
+        { text: 'Các số 175, 200, 250 đều gặp trong lúc đếm. Số 235 nằm giữa 225 và 250, ếch nhảy qua mà không đáp xuống.', visual: { kind: 'numberline', min: 200, max: 275, step: 25, labelEvery: 25, points: [{ at: 225 }, { at: 235, hidden: true, color: '#EC7468' }, { at: 250 }] } },
         { text: 'Vậy số KHÔNG thuộc dãy là 235.', mark: 'good' },
       ] },
     },
@@ -266,7 +266,7 @@ export default {
         const wrongL = [terms[2] + sg, terms[2] + 2 * sg].map(f);
         const wrongHints = [{ match: [wrongL[0], wrongL[1], f(terms[5]), f(terms[6]), f(terms[7])].join('|'), code: 'NGƯỢC', why: `Các số bên trái ${f(terms[2])} thì phải ${sg > 0 ? 'TRỪ' : 'CỘNG'} ${d}, không phải ${sg > 0 ? 'cộng' : 'trừ'}.` }];
         const lo = Math.min(...terms) - d, hi = Math.max(...terms) + d;
-        const nl = (pts, extra = {}) => ({ kind: 'numberline', min: lo, max: hi, step: d, labelEvery: d, points: pts.map((t) => ({ at: t, color: t === 0 ? '#FF8A3D' : undefined })), ...extra });
+        const nl = (pts, extra = {}) => ({ kind: 'numberline', min: lo, max: hi, step: d, labelEvery: d, points: pts.map((t) => ({ at: t, color: t === 0 ? '#F5893A' : undefined })), ...extra });
         const g3 = given.map((i) => terms[i]);
         return {
           id: 'g1.3', src: '[biến thể mới]', type: 'numpad',

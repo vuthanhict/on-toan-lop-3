@@ -8,7 +8,7 @@ const fmt = (n) => {
   return (n < 0 ? '−' : '') + t;
 };
 const HN = ['đơn vị', 'chục', 'trăm', 'nghìn', 'chục nghìn', 'trăm nghìn']; // theo số mũ của 10
-const UP = '#FF8A3D', DOWN = '#B05CFF', MID = '#2FBF71', PINK = '#FF5C8A';
+const UP = '#F5893A', DOWN = '#8B6CF0', MID = '#34B27B', PINK = '#EC7468';
 const IDS = ['a', 'b', 'c', 'd'];
 
 // làm tròn đến 10^L theo quy tắc: chữ số cần xét >= 5 thì lên

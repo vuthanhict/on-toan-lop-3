@@ -6,7 +6,7 @@ let uidN = 0;
 export const vctx = {
   reduced: typeof matchMedia !== 'undefined' && matchMedia('(prefers-reduced-motion: reduce)').matches,
   lite: false,
-  palette: ['#4C6FFF', '#FF8A3D', '#2FBF71', '#B05CFF', '#FFC531', '#FF5C8A', '#22B8CF', '#8D6E63'],
+  palette: ['#4F6BED', '#F5893A', '#34B27B', '#8B6CF0', '#F7BE2C', '#EC7468', '#3BB3C4', '#5D6985'],
   uid() { return 'v' + (++uidN); },
 };
 

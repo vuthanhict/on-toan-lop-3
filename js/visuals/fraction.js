@@ -7,7 +7,7 @@ const CSS = `
 `;
 
 // 12 màu cho 12 hàng tường (tự chọn, dễ phân biệt)
-const WALL = ['#E8447E', '#D6334F', '#F0503C', '#F27A2A', '#F5A524', '#E3C21F', '#9BD43B', '#3FCB5C', '#22C792', '#3CCFC4', '#4AA8F2', '#A55DE8'];
+const WALL = ['#EC7468', '#EC7468', '#EC7468', '#F5893A', '#F5893A', '#F7BE2C', '#34B27B', '#34B27B', '#34B27B', '#3BB3C4', '#4F6BED', '#8B6CF0'];
 
 /* ---------------------------------------------------------------- fracwall */
 function fracwall(spec, ctx) {
@@ -43,7 +43,7 @@ function fracwall(spec, ctx) {
       const rx = r === 1 ? 10 : (i === 0 || i === r - 1 ? 8 : 3);
       cell.appendChild(el('rect', {
         x: x0 + i * cw + 1, y, width: cw - 2, height: rowH, rx,
-        fill: col, stroke: (hasHL && i < nh) ? COL.ink : '#fff', 'stroke-width': (hasHL && i < nh) ? 3 : 2,
+        fill: col, stroke: (hasHL && i < nh) ? COL.ink : '#FFFFFF', 'stroke-width': (hasHL && i < nh) ? 3 : 2,
       }));
       const cx = x0 + i * cw + cw / 2, cy = y + rowH / 2;
       if (r === 1) {
@@ -66,8 +66,8 @@ function fracwall(spec, ctx) {
     const lines = [];
     (same ? [xs[0]] : xs).forEach((x, i) => {
       const l = el('g', { class: 'v-fracwall-cmp' });
-      l.appendChild(el('line', { x1: x, x2: x, y1: yTop, y2: yBot, stroke: '#fff', 'stroke-width': 7, 'stroke-linecap': 'round' }));
-      l.appendChild(el('line', { x1: x, x2: x, y1: yTop, y2: yBot, stroke: i === 0 ? COL.ink : '#B05CFF', 'stroke-width': 3.5, 'stroke-dasharray': '7 6', 'stroke-linecap': 'round' }));
+      l.appendChild(el('line', { x1: x, x2: x, y1: yTop, y2: yBot, stroke: '#FFFFFF', 'stroke-width': 7, 'stroke-linecap': 'round' }));
+      l.appendChild(el('line', { x1: x, x2: x, y1: yTop, y2: yBot, stroke: i === 0 ? COL.ink : '#8B6CF0', 'stroke-width': 3.5, 'stroke-dasharray': '7 6', 'stroke-linecap': 'round' }));
       svg.appendChild(l);
       lines.push(l);
     });
@@ -134,7 +134,7 @@ function fracshape(spec, ctx) {
     const defs = el('defs', null, [el('clipPath', { id: cid }, [el('rect', { x, y, width: w, height: h, rx })])]);
     svg.appendChild(defs);
     const g = el('g', { 'clip-path': `url(#${cid})` });
-    g.appendChild(el('rect', { x, y, width: w, height: h, fill: '#fff' }));
+    g.appendChild(el('rect', { x, y, width: w, height: h, fill: '#FFFFFF' }));
     for (let i = 0; i < den; i++) {
       if (i < nm) {
         const r = el('rect', { x: x + w * b[i], y, width: w * (b[i + 1] - b[i]) + 0.5, height: h, fill: fillCol });
@@ -154,11 +154,11 @@ function fracshape(spec, ctx) {
     const cx = showLabel ? 128 : 180, cy = 95, r = 82;
     const a0 = -Math.PI / 2;
     if (den === 1) {
-      svg.appendChild(el('circle', { cx, cy, r, fill: '#fff' }));
+      svg.appendChild(el('circle', { cx, cy, r, fill: '#FFFFFF' }));
       if (nm >= 1) { const c = el('circle', { cx, cy, r, fill: fillCol }); svg.appendChild(c); fills.push(c); }
       svg.appendChild(el('circle', { cx, cy, r, fill: 'none', stroke: COL.ink, 'stroke-width': 4 }));
     } else {
-      svg.appendChild(el('circle', { cx, cy, r, fill: '#fff' }));
+      svg.appendChild(el('circle', { cx, cy, r, fill: '#FFFFFF' }));
       for (let i = 0; i < nm; i++) {
         const p = el('path', { d: sectorPath(cx, cy, r, a0 + b[i] * Math.PI * 2, a0 + b[i + 1] * Math.PI * 2), fill: fillCol });
         svg.appendChild(p); fills.push(p);
@@ -177,7 +177,7 @@ function fracshape(spec, ctx) {
     const body = `M${x} ${yT}L${x} ${yB - 22}Q${x} ${yB} ${x + 22} ${yB}L${x + bw - 22} ${yB}Q${x + bw} ${yB} ${x + bw} ${yB - 22}L${x + bw} ${yT}Z`;
     const cid = id + 'c';
     svg.appendChild(el('defs', null, [el('clipPath', { id: cid }, [el('path', { d: body })])]));
-    svg.appendChild(el('path', { d: body, fill: '#fff' }));
+    svg.appendChild(el('path', { d: body, fill: '#FFFFFF' }));
     const g = el('g', { 'clip-path': `url(#${cid})` });
     for (let i = 0; i < nm; i++) {
       const y1 = yB - h * b[i + 1], y0 = yB - h * b[i];
@@ -190,7 +190,7 @@ function fracshape(spec, ctx) {
       svg.appendChild(el('line', { x1: x, x2: x + bw, y1: y, y2: y, stroke: COL.ink, 'stroke-width': 3 }));
     }
     svg.appendChild(el('path', { d: body, fill: 'none', stroke: COL.ink, 'stroke-width': 4, 'stroke-linejoin': 'round' }));
-    svg.appendChild(el('rect', { x: x - 6, y: yT - 10, width: bw + 12, height: 12, rx: 6, fill: '#fff', stroke: COL.ink, 'stroke-width': 4 }));
+    svg.appendChild(el('rect', { x: x - 6, y: yT - 10, width: bw + 12, height: 12, rx: 6, fill: '#FFFFFF', stroke: COL.ink, 'stroke-width': 4 }));
     svg._mid = [x + bw + 62, (yT + yB) / 2];
   }
 
@@ -238,7 +238,7 @@ function fracset(spec, ctx) {
     const gy = padX + Math.floor(k / gcols) * (gh + gapY);
     const on = k < nm;
     const grp = el('g', null);
-    const box = el('rect', { x: gx, y: gy, width: gw, height: gh, rx: 14, fill: on ? 'rgba(255,197,49,.38)' : 'rgba(255,255,255,.7)', stroke: on ? COL.accent : '#9A97B0', 'stroke-width': on ? 4 : 2.5, 'stroke-dasharray': on ? '' : '7 6' });
+    const box = el('rect', { x: gx, y: gy, width: gw, height: gh, rx: 14, fill: on ? 'rgba(255,197,49,.38)' : 'rgba(255,255,255,.7)', stroke: on ? COL.accent : '#8E99B2', 'stroke-width': on ? 4 : 2.5, 'stroke-dasharray': on ? '' : '7 6' });
     grp.appendChild(box);
     boxes.push(box); if (on) hiBoxes.push(box);
     for (let j = 0; j < g; j++) {
@@ -262,7 +262,7 @@ function fracset(spec, ctx) {
       b.style.transformBox = 'fill-box'; b.style.transformOrigin = '50% 50%';
       A(b, [{ opacity: 0, transform: 'scale(.6)' }, { opacity: 1, transform: 'none' }], { duration: 350, delay: i * d });
     });
-    hiBoxes.forEach((b, i) => A(b, [{ fill: 'rgba(255,255,255,.7)', stroke: '#9A97B0', strokeWidth: 2.5 }, { fill: 'rgba(255,197,49,.38)', stroke: 'var(--c-accent,#FF8A3D)', strokeWidth: 4 }],
+    hiBoxes.forEach((b, i) => A(b, [{ fill: 'rgba(255,255,255,.7)', stroke: '#8E99B2', strokeWidth: 2.5 }, { fill: 'rgba(255,197,49,.38)', stroke: 'var(--c-accent,#F5893A)', strokeWidth: 4 }],
       { duration: 400, delay: 1000 + i * 150, fill: 'both' }));
   }, spec.anim === 'group' || !!spec.anim);
   return svg;

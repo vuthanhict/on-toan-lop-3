@@ -30,6 +30,11 @@ function starsRow(n, size = 20) {
   return w;
 }
 function voiceOn() { return store.get().settings.voice; }
+function applyEye() {
+  const m = store.get().settings.eye || 'auto'; const hr = new Date().getHours();
+  const on = m === 'on' || (m === 'auto' && (hr >= 18 || hr < 6));
+  document.documentElement.classList.toggle('eye', on);
+}
 const nextTopic = () => TOPICS.find((t) => !store.topic(t.id).stars);
 
 // ---------- Khung màn hình ----------
@@ -81,8 +86,8 @@ function buildMap(today) {
   }
   banner(6);
   const wr = store.get().wrong.length;
-  place({ href: '#/review', kind: 'review', inner: icon('review', 34), label: 'Ôn câu sai' + (wr ? ' (' + wr + ')' : ''), vars: '--nc:#E8761A;--ns:#FFF0DE' });
-  place({ href: '#/exam', kind: 'boss', inner: icon('exam', 40), label: 'Trận cuối: Đề thử', current: !nt, vars: '--nc:#7B4DE8;--ns:#EFE8FF' });
+  place({ href: '#/review', kind: 'review', inner: icon('review', 34), label: 'Ôn câu sai' + (wr ? ' (' + wr + ')' : ''), vars: '--nc:#EC7468;--ns:#FFE9E5;color:#C24A42' });
+  place({ href: '#/exam', kind: 'boss', inner: icon('exam', 40), label: 'Trận cuối: Đề thử', current: !nt, vars: '--nc:#8B6CF0;--ns:#EEE9FF' });
   const H = y + 6;
   let segs = '';
   for (let i = 0; i < pts.length - 1; i++) {
@@ -109,7 +114,7 @@ function viewHome() {
   const nt = nextTopic();
   const next = nt
     ? h('a', { class: 'next', href: '#/topic/' + nt.id }, topicIcon(nt.no), h('div', { class: 'next-body' }, h('div', { class: 'next-label' }, doneN ? 'Trạm tiếp theo' : 'Bắt đầu hành trình'), h('div', { class: 'next-title' }, 'CĐ' + nt.no + ' · ' + nt.title)), h('span', { class: 'next-go' }, icon('play', 26)))
-    : h('a', { class: 'next', href: '#/exam' }, h('span', { class: 'ticon', style: '--tile:#EFE8FF;color:#7B4DE8' }, icon('exam', 28)), h('div', { class: 'next-body' }, h('div', { class: 'next-label' }, 'Con đã đi hết các trạm'), h('div', { class: 'next-title' }, 'Đánh trận cuối: Đề thử')), h('span', { class: 'next-go' }, icon('play', 26)));
+    : h('a', { class: 'next', href: '#/exam' }, h('span', { class: 'ticon', style: '--tile:#EEE9FF;color:#6C4FD0' }, icon('exam', 28)), h('div', { class: 'next-body' }, h('div', { class: 'next-label' }, 'Con đã đi hết các trạm'), h('div', { class: 'next-title' }, 'Đánh trận cuối: Đề thử')), h('span', { class: 'next-go' }, icon('play', 26)));
   const note = (!sp.supported || !sp.hasVietnamese) ? h('div', { class: 'note' }, 'Máy này chưa có giọng đọc tiếng Việt. Con vẫn học được nhờ chữ và hình nhé. Bố mẹ có thể bật giọng tiếng Việt trong Cài đặt → Trợ năng → Nội dung được đọc.') : null;
   const tile = (href, ic, label, badge, cls) => h('a', { class: 'qtile ' + (cls || ''), href }, h('span', { class: 'qi' }, icon(ic, 26)), h('span', { class: 'ql' }, label), badge ? h('b', null, badge) : null);
   const quick = h('div', { class: 'quick3' },
@@ -117,6 +122,8 @@ function viewHome() {
     tile('#/exam', 'exam', 'Đề thử', st.exam.best ? st.exam.best + '/20' : null, 'exam'),
     tile('#/locker', 'shirt', 'Tủ đồ', (st.badges || []).length || null, 'locker'));
   const settings = h('details', { class: 'settings' }, h('summary', null, icon('sliders', 22), 'Cài đặt'),
+    h('div', { class: 'set-label' }, 'Dịu mắt (ấm màu, bớt chói)'),
+    h('div', { class: 'radio-row' }, [['auto', 'Tự động buổi tối'], ['on', 'Luôn bật'], ['off', 'Tắt']].map(([v, t]) => h('label', null, h('input', { type: 'radio', name: 'eye', value: v, checked: (st.settings.eye || 'auto') === v ? 'checked' : null, onchange: () => { store.setSetting('eye', v); applyEye(); } }), h('span', null, t)))),
     h('label', { class: 'toggle' }, h('input', { type: 'checkbox', checked: st.settings.sound !== false ? 'checked' : null, onchange: (e) => { store.setSetting('sound', e.target.checked); if (e.target.checked) play('correct'); } }), 'Âm thanh vui nhộn'),
     h('label', { class: 'toggle' }, h('input', { type: 'checkbox', checked: voiceOn() ? 'checked' : null, onchange: (e) => { store.setSetting('voice', e.target.checked); } }), 'Tự động đọc lời giải'),
     h('label', { class: 'toggle' }, h('input', { type: 'checkbox', checked: vctx.reduced ? 'checked' : null, onchange: (e) => { vctx.reduced = e.target.checked; vctx.lite = e.target.checked; store.setSetting('lite', e.target.checked); } }), 'Giảm hiệu ứng chuyển động'),
@@ -145,8 +152,8 @@ function viewFinalDay() {
   const tile = (bg, fg, ic) => h('span', { class: 'ticon', style: '--tile:' + bg + ';color:' + fg }, icon(ic, 28));
   screen('dayview', topbar('Ngày 6 · Tổng ôn', '#/'), h('p', { class: 'lead' }, 'Không học kiến thức mới. Làm lại câu sai, rồi thử sức với đề 20 câu.'),
     h('div', { class: 'topics' },
-      h('a', { class: 'tcard', href: '#/review' }, tile('#FFF0DE', '#E8761A', 'review'), h('div', { class: 'tbody' }, h('div', { class: 'tt' }, 'Ôn câu sai'), h('div', { class: 'ts' }, store.get().wrong.length + ' câu đang chờ con')), h('span', { class: 'chev' }, icon('chev', 22))),
-      h('a', { class: 'tcard', href: '#/exam' }, tile('#EFE8FF', '#7B4DE8', 'exam'), h('div', { class: 'tbody' }, h('div', { class: 'tt' }, 'Đề thử 20 câu'), h('div', { class: 'ts' }, 'Làm xong mới xem đáp án. Không bị trừ gì cả!')), h('span', { class: 'chev' }, icon('chev', 22)))));
+      h('a', { class: 'tcard', href: '#/review' }, tile('#FFE9E5', '#C24A42', 'review'), h('div', { class: 'tbody' }, h('div', { class: 'tt' }, 'Ôn câu sai'), h('div', { class: 'ts' }, store.get().wrong.length + ' câu đang chờ con')), h('span', { class: 'chev' }, icon('chev', 22))),
+      h('a', { class: 'tcard', href: '#/exam' }, tile('#EEE9FF', '#6C4FD0', 'exam'), h('div', { class: 'tbody' }, h('div', { class: 'tt' }, 'Đề thử 20 câu'), h('div', { class: 'ts' }, 'Làm xong mới xem đáp án. Không bị trừ gì cả!')), h('span', { class: 'chev' }, icon('chev', 22)))));
 }
 
 // ---------- Tủ đồ & huy hiệu ----------
@@ -385,7 +392,7 @@ function viewResult({ title, sm, stars, back, again, exam, rw }) {
 
 // ---------- Bộ định tuyến ----------
 function route() {
-  stopSpeech();
+  stopSpeech(); applyEye();
   const [, a, b] = (location.hash || '#/').split('/');
   try {
     if (!a) return viewHome();

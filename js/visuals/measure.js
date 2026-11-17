@@ -2,7 +2,7 @@
 import { COL, el, svgRoot, safe, num, int, fracText, uid, ensureStyle, setupAnim } from './_v2.js';
 
 const CSS = `.v-measure text{font-family:inherit}`;
-const WATER = '#4FB3FF';
+const WATER = '#4F6BED';
 
 function parseFrac(s) {
   const m = /^\s*(\d+)\s*\/\s*(\d+)\s*$/.exec(String(s));
@@ -37,7 +37,7 @@ function measure(spec, ctx) {
 
   const drawPointerLabel = (g, x, y) => {
     if (ptr.hidden) {
-      g.appendChild(el('rect', { x: x - 20, y: y - 22, width: 40, height: 44, rx: 10, fill: '#fff', stroke: COL.accent, 'stroke-width': 3, 'stroke-dasharray': '6 4' }));
+      g.appendChild(el('rect', { x: x - 20, y: y - 22, width: 40, height: 44, rx: 10, fill: '#FFFFFF', stroke: COL.accent, 'stroke-width': 3, 'stroke-dasharray': '6 4' }));
       g.appendChild(el('text', { x, y: y + 9, 'text-anchor': 'middle', 'font-size': 28, 'font-weight': 900, fill: COL.accent, text: '?' }));
       return;
     }
@@ -66,7 +66,7 @@ function measure(spec, ctx) {
       const g = el('g', { 'clip-path': `url(#${cid})` });
       fillEl = el('g', null);
       fillEl.appendChild(el('rect', { x: x - 2, y: yOf(level), width: hw * 2 + 4, height: yB - yOf(level) + 4, fill: WATER, 'fill-opacity': 0.78 }));
-      fillEl.appendChild(el('rect', { x: x - 2, y: yOf(level), width: hw * 2 + 4, height: 6, fill: '#fff', 'fill-opacity': 0.35 }));
+      fillEl.appendChild(el('rect', { x: x - 2, y: yOf(level), width: hw * 2 + 4, height: 6, fill: '#FFFFFF', 'fill-opacity': 0.35 }));
       g.appendChild(fillEl);
       svg.appendChild(g);
     }
@@ -93,7 +93,7 @@ function measure(spec, ctx) {
     }
     svg.appendChild(el('path', { d: body, fill: 'none', stroke: COL.ink, 'stroke-width': 4.5, 'stroke-linejoin': 'round' }));
     if (type === 'jar') {
-      svg.appendChild(el('rect', { x: x - 6, y: yT - 12, width: hw * 2 + 12, height: 14, rx: 7, fill: '#fff', stroke: COL.ink, 'stroke-width': 4.5 }));
+      svg.appendChild(el('rect', { x: x - 6, y: yT - 12, width: hw * 2 + 12, height: 14, rx: 7, fill: '#FFFFFF', stroke: COL.ink, 'stroke-width': 4.5 }));
     } else {
       svg.appendChild(el('path', { d: `M${x - 10} ${yT - 8}L${x} ${yT}`, stroke: COL.ink, 'stroke-width': 4.5, 'stroke-linecap': 'round', fill: 'none' }));
     }
@@ -117,10 +117,10 @@ function measure(spec, ctx) {
     const rx = type === 'bar' ? 14 : 6;
     const cid = id + 'c';
     svg.appendChild(el('defs', null, [el('clipPath', { id: cid }, [el('rect', { x: x0, y: yBar, width: W, height: barH, rx })])]));
-    svg.appendChild(el('rect', { x: x0, y: yBar, width: W, height: barH, rx, fill: type === 'ruler' ? '#FFF1B8' : '#fff' }));
+    svg.appendChild(el('rect', { x: x0, y: yBar, width: W, height: barH, rx, fill: type === 'ruler' ? '#FFF3CF' : '#FFFEFB' }));
     if (level > 0) {
       const g = el('g', { 'clip-path': `url(#${cid})` });
-      fillEl = el('rect', { x: x0, y: type === 'ruler' ? yBar + barH * 0.45 : yBar, width: W * level / parts, height: type === 'ruler' ? barH * 0.55 : barH, fill: type === 'ruler' ? '#4C6FFF' : '#4C6FFF', 'fill-opacity': type === 'ruler' ? 0.55 : 0.85 });
+      fillEl = el('rect', { x: x0, y: type === 'ruler' ? yBar + barH * 0.45 : yBar, width: W * level / parts, height: type === 'ruler' ? barH * 0.55 : barH, fill: type === 'ruler' ? '#F7BE2C' : '#4F6BED', 'fill-opacity': type === 'ruler' ? 0.9 : 0.85 });
       g.appendChild(fillEl);
       svg.appendChild(g);
     }

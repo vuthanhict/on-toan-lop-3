@@ -31,16 +31,16 @@ export const ITEMS = [
   { id: 'medal', slot: 'neck', name: 'Huy chương vàng', need: 'Đạt cấp 5 hoặc đề thử đúng 16/20', test: (c) => c.lv >= 5 || c.examBest >= 16 },
 ];
 export const BADGES = [
-  { id: 'first', name: 'Khởi hành', desc: 'Luyện xong chủ đề đầu tiên', icon: 'flag', color: '#4C6FFF', test: (c) => c.anyDone },
-  { id: 'combo5', name: 'Chuỗi 5', desc: 'Đúng liên tiếp 5 câu', icon: 'flame', color: '#FF8A3D', test: (c) => c.stats.bestCombo >= 5 },
-  { id: 'combo10', name: 'Chuỗi 10', desc: 'Đúng liên tiếp 10 câu', icon: 'flame', color: '#E8461A', test: (c) => c.stats.bestCombo >= 10 },
-  { id: 'perfect', name: 'Hoàn hảo', desc: 'Được 3 sao ở một chủ đề', icon: 'star', color: '#F5A400', test: (c) => c.perfect },
-  { id: 'detective', name: 'Thám tử', desc: 'Sửa đúng 5 câu sai', icon: 'review', color: '#16A765', test: (c) => c.stats.fixed >= 5 },
-  { id: 'd1', name: 'Hết Ngày 1', desc: 'Luyện xong mọi chủ đề Ngày 1', icon: 'check', color: '#22B8CF', test: (c) => c.dayDone(1) },
-  { id: 'd3', name: 'Hết Ngày 3', desc: 'Luyện xong mọi chủ đề Ngày 3', icon: 'check', color: '#8B5CF6', test: (c) => c.dayDone(3) },
-  { id: 'd5', name: 'Hết Ngày 5', desc: 'Luyện xong mọi chủ đề Ngày 5', icon: 'check', color: '#FF5C8A', test: (c) => c.dayDone(5) },
-  { id: 'exam', name: 'Thử sức', desc: 'Làm một đề thử', icon: 'exam', color: '#7B4DE8', test: (c) => c.examBest > 0 },
-  { id: 'champ', name: 'Nhà vô địch', desc: 'Đề thử đúng từ 16/20', icon: 'trophy', color: '#F5A400', test: (c) => c.examBest >= 16 },
+  { id: 'first', name: 'Khởi hành', desc: 'Luyện xong chủ đề đầu tiên', icon: 'flag', color: '#4F6BED', test: (c) => c.anyDone },
+  { id: 'combo5', name: 'Chuỗi 5', desc: 'Đúng liên tiếp 5 câu', icon: 'flame', color: '#F5893A', test: (c) => c.stats.bestCombo >= 5 },
+  { id: 'combo10', name: 'Chuỗi 10', desc: 'Đúng liên tiếp 10 câu', icon: 'flame', color: '#EC7468', test: (c) => c.stats.bestCombo >= 10 },
+  { id: 'perfect', name: 'Hoàn hảo', desc: 'Được 3 sao ở một chủ đề', icon: 'star', color: '#F7BE2C', test: (c) => c.perfect },
+  { id: 'detective', name: 'Thám tử', desc: 'Sửa đúng 5 câu sai', icon: 'review', color: '#218B5C', test: (c) => c.stats.fixed >= 5 },
+  { id: 'd1', name: 'Hết Ngày 1', desc: 'Luyện xong mọi chủ đề Ngày 1', icon: 'check', color: '#3BB3C4', test: (c) => c.dayDone(1) },
+  { id: 'd3', name: 'Hết Ngày 3', desc: 'Luyện xong mọi chủ đề Ngày 3', icon: 'check', color: '#8B6CF0', test: (c) => c.dayDone(3) },
+  { id: 'd5', name: 'Hết Ngày 5', desc: 'Luyện xong mọi chủ đề Ngày 5', icon: 'check', color: '#EC7468', test: (c) => c.dayDone(5) },
+  { id: 'exam', name: 'Thử sức', desc: 'Làm một đề thử', icon: 'exam', color: '#8B6CF0', test: (c) => c.examBest > 0 },
+  { id: 'champ', name: 'Nhà vô địch', desc: 'Đề thử đúng từ 16/20', icon: 'trophy', color: '#F7BE2C', test: (c) => c.examBest >= 16 },
 ];
 
 // ---- combo (trong phiên) ----

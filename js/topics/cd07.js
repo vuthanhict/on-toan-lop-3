@@ -8,7 +8,7 @@ const fmt = (n) => {
   return (n < 0 ? '−' : '') + t;
 };
 const IDS = ['a', 'b', 'c', 'd'];
-const PINK = '#FF5C8A', UP = '#FF8A3D', DOWN = '#B05CFF';
+const PINK = '#EC7468', UP = '#F5893A', DOWN = '#8B6CF0';
 const r100 = (x) => Math.round(x / 100) * 100; // làm tròn đến hàng trăm (5 trở lên thì lên)
 const r10 = (x) => Math.round(x / 10) * 10;
 const dg = (n) => [Math.floor(n / 100), Math.floor(n / 10) % 10, n % 10];
@@ -45,7 +45,7 @@ function nlJump(a, jumps, show, bare) { // jumps: [{to,label}], show: số đi�
   const js = []; let cur = a;
   jumps.forEach((j, i) => { if (i < show) js.push({ from: cur, to: j.to, label: j.label }); cur = j.to; });
   const points = [{ at: a, label: fmt(a), color: PINK }];
-  jumps.forEach((j, i) => { if (i < show) points.push({ at: j.to, label: fmt(j.to), color: i === jumps.length - 1 ? '#2FBF71' : UP }); else if (!bare) points.push({ at: j.to, hidden: true }); });
+  jumps.forEach((j, i) => { if (i < show) points.push({ at: j.to, label: fmt(j.to), color: i === jumps.length - 1 ? '#34B27B' : UP }); else if (!bare) points.push({ at: j.to, hidden: true }); });
   return { kind: 'numberline', min: lo, max: hi, step: 10, labelEvery: (hi - lo) / 10 > 10 ? 20 : 10, points, jumps: js, marker: { at: a, emoji: '🐸' }, anim: show ? 'hop' : undefined };
 }
 

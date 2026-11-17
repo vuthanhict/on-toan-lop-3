@@ -38,12 +38,12 @@ function clock(spec, ctx) {
   let yNext = 8;
   if (showAnalog) {
     const ccy = 8 + R;
-    svg.appendChild(el('circle', { cx, cy: ccy, r: R + 4, fill: '#fff', stroke: COL.primary, 'stroke-width': 10 }));
+    svg.appendChild(el('circle', { cx, cy: ccy, r: R + 4, fill: '#FFFFFF', stroke: COL.primary, 'stroke-width': 10 }));
     svg.appendChild(el('circle', { cx, cy: ccy, r: R - 2, fill: 'none', stroke: COL.line, 'stroke-width': 2 }));
     for (let i = 0; i < 60; i++) {
       const a = i * 6 * Math.PI / 180, big = i % 5 === 0;
       const r1 = R - (big ? 14 : 8), r2 = R - 3;
-      svg.appendChild(el('line', { x1: cx + r1 * Math.sin(a), y1: ccy - r1 * Math.cos(a), x2: cx + r2 * Math.sin(a), y2: ccy - r2 * Math.cos(a), stroke: big ? COL.ink : '#9A97B0', 'stroke-width': big ? 3.5 : 1.8, 'stroke-linecap': 'round' }));
+      svg.appendChild(el('line', { x1: cx + r1 * Math.sin(a), y1: ccy - r1 * Math.cos(a), x2: cx + r2 * Math.sin(a), y2: ccy - r2 * Math.cos(a), stroke: big ? COL.ink : '#8E99B2', 'stroke-width': big ? 3.5 : 1.8, 'stroke-linecap': 'round' }));
     }
     for (let i = 1; i <= 12; i++) {
       const a = i * 30 * Math.PI / 180, rr = R - 34;
@@ -56,16 +56,16 @@ function clock(spec, ctx) {
     svg.appendChild(hourG);
     svg.appendChild(minG);
     svg.appendChild(el('circle', { cx, cy: ccy, r: 8, fill: COL.ink }));
-    svg.appendChild(el('circle', { cx, cy: ccy, r: 3, fill: '#fff' }));
+    svg.appendChild(el('circle', { cx, cy: ccy, r: 3, fill: '#FFFFFF' }));
     svg._cc = [cx, ccy];
     yNext = 2 * R + 20;
   }
   if (showDigital) {
     const w = 190, x = cx - w / 2, y = yNext + (showAnalog ? 0 : 10);
-    svg.appendChild(el('rect', { x, y, width: w, height: 62, rx: 16, fill: '#2B2A3A' }));
-    svg.appendChild(el('rect', { x: x + 4, y: y + 4, width: w - 8, height: 54, rx: 12, fill: '#1E1D2B', stroke: '#4B4A63', 'stroke-width': 2 }));
-    svg.appendChild(el('text', { class: 'v-clock-dig', x: cx - (tag ? 18 : 0), y: y + 45, 'text-anchor': 'middle', 'font-size': 44, 'font-weight': 900, fill: '#7BFFB0', text: digital, style: 'font-family:ui-monospace,Menlo,Consolas,monospace' }));
-    if (tag) svg.appendChild(el('text', { x: x + w - 18, y: y + 44, 'text-anchor': 'end', 'font-size': 18, 'font-weight': 900, fill: '#FFC531', text: tag }));
+    svg.appendChild(el('rect', { x, y, width: w, height: 62, rx: 16, fill: '#263250' }));
+    svg.appendChild(el('rect', { x: x + 4, y: y + 4, width: w - 8, height: 54, rx: 12, fill: '#263250', stroke: '#5D6985', 'stroke-width': 2 }));
+    svg.appendChild(el('text', { class: 'v-clock-dig', x: cx - (tag ? 18 : 0), y: y + 45, 'text-anchor': 'middle', 'font-size': 44, 'font-weight': 900, fill: '#98DDBB', text: digital, style: 'font-family:ui-monospace,Menlo,Consolas,monospace' }));
+    if (tag) svg.appendChild(el('text', { x: x + w - 18, y: y + 44, 'text-anchor': 'end', 'font-size': 18, 'font-weight': 900, fill: '#F7BE2C', text: tag }));
     yNext = y + 62;
   }
   if (cap24 || (!showDigital && tag)) {
@@ -134,8 +134,8 @@ function timeline(spec, ctx) {
     const info = `${fmtT(r.a)}–${fmtT(r.b)}` + (showDur ? ` · ${fmtDur(dur)}` : '');
     svg.appendChild(el('text', { x: x0 + W, y: y + 14, 'text-anchor': 'end', 'font-size': 14, 'font-weight': 700, fill: COL.mute, text: info }));
     const bx = xOf(r.a), bw = Math.max(8, xOf(r.b) - xOf(r.a));
-    svg.appendChild(el('rect', { x: x0, y: y + 22, width: W, height: 24, rx: 12, fill: '#F1EEF7' }));
-    const bar = el('rect', { x: bx, y: y + 22, width: bw, height: 24, rx: 12, fill: col, stroke: '#fff', 'stroke-width': 2 });
+    svg.appendChild(el('rect', { x: x0, y: y + 22, width: W, height: 24, rx: 12, fill: '#EEE9FF' }));
+    const bar = el('rect', { x: bx, y: y + 22, width: bw, height: 24, rx: 12, fill: col, stroke: '#FFFFFF', 'stroke-width': 2 });
     svg.appendChild(bar);
     bars.push(bar);
   });
@@ -166,12 +166,12 @@ function calendar(spec, ctx) {
   const H = top + weeks * ch + 10;
   const label = `Lịch tháng ${month} năm ${year}, ${days} ngày` + (hl.size ? `, tô sáng ngày ${[...hl].join(', ')}` : '') + (ci.size ? `, khoanh ngày ${[...ci].join(', ')}` : '') + '.';
   const svg = svgRoot(360, H, label, 'v-calendar', 440);
-  svg.appendChild(el('rect', { x: x0 - 4, y: 4, width: cw * 7 + 8, height: H - 8, rx: 18, fill: '#fff', stroke: COL.line, 'stroke-width': 3 }));
+  svg.appendChild(el('rect', { x: x0 - 4, y: 4, width: cw * 7 + 8, height: H - 8, rx: 18, fill: '#FFFFFF', stroke: COL.line, 'stroke-width': 3 }));
   svg.appendChild(el('path', { d: `M${x0 - 4} ${22}Q${x0 - 4} 4 ${x0 + 14} 4L${x0 + cw * 7 - 10} 4Q${x0 + cw * 7 + 4} 4 ${x0 + cw * 7 + 4} 22L${x0 + cw * 7 + 4} 38L${x0 - 4} 38Z`, fill: COL.primary }));
-  svg.appendChild(el('text', { x: 180, y: 29, 'text-anchor': 'middle', 'font-size': 19, 'font-weight': 900, fill: '#fff', text: `Tháng ${month} năm ${year}` }));
+  svg.appendChild(el('text', { x: 180, y: 29, 'text-anchor': 'middle', 'font-size': 19, 'font-weight': 900, fill: '#FFFFFF', text: `Tháng ${month} năm ${year}` }));
   heads.forEach((t, i) => {
     const isSun = t === 'CN';
-    svg.appendChild(el('text', { x: x0 + i * cw + cw / 2, y: 64, 'text-anchor': 'middle', 'font-size': 16, 'font-weight': 900, fill: isSun ? '#E0457B' : COL.mute, text: t }));
+    svg.appendChild(el('text', { x: x0 + i * cw + cw / 2, y: 64, 'text-anchor': 'middle', 'font-size': 16, 'font-weight': 900, fill: isSun ? '#EC7468' : COL.mute, text: t }));
   });
   const marks = [];
   for (let d = 1; d <= days; d++) {
@@ -181,9 +181,9 @@ function calendar(spec, ctx) {
     const isSun = sun ? col === 0 : col === 6;
     const g = el('g', null);
     const nCy = hasLabels ? y + 21 : y + ch / 2 + 1;
-    if (hl.has(d)) g.appendChild(el('rect', { x: x + 3, y: y + 3, width: cw - 6, height: ch - 6, rx: 12, fill: '#FFD84D', stroke: COL.accent, 'stroke-width': 2.5 }));
-    if (ci.has(d)) g.appendChild(el('circle', { cx: x + cw / 2, cy: nCy, r: 19, fill: 'none', stroke: '#E0457B', 'stroke-width': 4 }));
-    g.appendChild(el('text', { x: x + cw / 2, y: nCy + 6, 'text-anchor': 'middle', 'font-size': 19, 'font-weight': hl.has(d) || ci.has(d) ? 900 : 700, fill: isSun ? '#E0457B' : COL.ink, text: String(d) }));
+    if (hl.has(d)) g.appendChild(el('rect', { x: x + 3, y: y + 3, width: cw - 6, height: ch - 6, rx: 12, fill: '#F7BE2C', stroke: COL.accent, 'stroke-width': 2.5 }));
+    if (ci.has(d)) g.appendChild(el('circle', { cx: x + cw / 2, cy: nCy, r: 19, fill: 'none', stroke: '#EC7468', 'stroke-width': 4 }));
+    g.appendChild(el('text', { x: x + cw / 2, y: nCy + 6, 'text-anchor': 'middle', 'font-size': 19, 'font-weight': hl.has(d) || ci.has(d) ? 900 : 700, fill: isSun ? '#EC7468' : COL.ink, text: String(d) }));
     if (hasLabels && labels[d] != null) g.appendChild(el('text', { x: x + cw / 2, y: y + 49, 'text-anchor': 'middle', 'font-size': 14, 'font-weight': 700, fill: COL.primary, text: String(labels[d]).slice(0, 5) }));
     svg.appendChild(g);
     if (hl.has(d) || ci.has(d)) marks.push(g);

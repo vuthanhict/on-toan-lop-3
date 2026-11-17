@@ -82,7 +82,7 @@ const g2 = {
         explain: {
           steps: [
             { text: `Cứ 60 phút là 1 giờ. Trong ${N} phút có ${q} lần 60 phút: ${q} × 60 = ${q * 60}.`, visual: tl([{ label: `${q} giờ`, from: tm(8, 0), to: tm(8 + q, 0) }], { scale: { from: '8:00', to: tm(eh + (em ? 1 : 0), 0) }, showDuration: true }) },
-            { text: `Phút còn lại: ${N} − ${q * 60} = ${r} phút.`, visual: tl([{ label: `${q} giờ`, from: tm(8, 0), to: tm(8 + q, 0) }, { label: `${r} phút`, from: tm(8 + q, 0), to: tm(eh, em), color: '#FF8A3D' }], { scale: { from: '8:00', to: tm(eh + (em ? 1 : 0), 0) }, showDuration: true }) },
+            { text: `Phút còn lại: ${N} − ${q * 60} = ${r} phút.`, visual: tl([{ label: `${q} giờ`, from: tm(8, 0), to: tm(8 + q, 0) }, { label: `${r} phút`, from: tm(8 + q, 0), to: tm(eh, em), color: '#F5893A' }], { scale: { from: '8:00', to: tm(eh + (em ? 1 : 0), 0) }, showDuration: true }) },
             { text: `Vậy ${N} phút = ${q} giờ ${r} phút.` },
           ],
         },
@@ -107,7 +107,7 @@ const g2 = {
       explain: {
         steps: [
           { text: `${a} giờ = ${a} × 60 = ${a * 60} phút.`, visual: tl([{ label: `${a} giờ`, from: tm(8, 0), to: tm(8 + a, 0) }], { scale: { from: '8:00', to: tm(eh + (em ? 1 : 0), 0) }, showDuration: true }) },
-          { text: `Cộng thêm ${b} phút: ${a * 60} + ${b} = ${tot} phút.`, visual: tl([{ label: `${a} giờ`, from: tm(8, 0), to: tm(8 + a, 0) }, { label: `${b} phút`, from: tm(8 + a, 0), to: tm(eh, em), color: '#FF8A3D' }], { scale: { from: '8:00', to: tm(eh + (em ? 1 : 0), 0) }, showDuration: true }) },
+          { text: `Cộng thêm ${b} phút: ${a * 60} + ${b} = ${tot} phút.`, visual: tl([{ label: `${a} giờ`, from: tm(8, 0), to: tm(8 + a, 0) }, { label: `${b} phút`, from: tm(8 + a, 0), to: tm(eh, em), color: '#F5893A' }], { scale: { from: '8:00', to: tm(eh + (em ? 1 : 0), 0) }, showDuration: true }) },
           { text: `Vậy ${a} giờ ${b} phút = ${tot} phút.` },
         ],
       },
@@ -148,7 +148,7 @@ const g3 = {
       explain: {
         steps: [
           { text: `Từ ${fmtT(h1, m1)} đến ${fmtT(h1 + 1, 0)} là ${60 - m1} phút.`, visual: tl([{ label: 'Bước 1', from: tm(h1, m1), to: tm(h1 + 1, 0) }], { scale, showDuration: true }) },
-          { text: `Từ ${fmtT(h1 + 1, 0)} đến ${fmtT(h2, 0)} là ${dh} giờ.`, visual: tl([{ label: 'Bước 1', from: tm(h1, m1), to: tm(h1 + 1, 0) }, { label: 'Bước 2', from: tm(h1 + 1, 0), to: tm(h2, 0), color: '#FF8A3D' }], { scale, showDuration: true }) },
+          { text: `Từ ${fmtT(h1 + 1, 0)} đến ${fmtT(h2, 0)} là ${dh} giờ.`, visual: tl([{ label: 'Bước 1', from: tm(h1, m1), to: tm(h1 + 1, 0) }, { label: 'Bước 2', from: tm(h1 + 1, 0), to: tm(h2, 0), color: '#F5893A' }], { scale, showDuration: true }) },
           { text: `Từ ${fmtT(h2, 0)} đến ${fmtT(h2, m2)} là ${m2} phút. Cộng các phút: ${60 - m1} + ${m2} = ${dm}.`, visual: tl([row], { scale, showDuration: true }) },
           { text: `Vậy Lan làm bài ${correct}. Đáp án là ${correct}.` },
         ],
@@ -338,7 +338,7 @@ export default {
       explain: {
         steps: [
           { text: 'Câu a: 1 giờ = 60 phút nên 2 giờ = 2 × 60 = 120 phút.', visual: tl([{ label: '2 giờ', from: '8:00', to: '10:00' }], { scale: { from: '8:00', to: '11:00' }, showDuration: true }) },
-          { text: 'Câu b: 150 − 60 = 90, rồi 90 − 60 = 30. Đã lấy ra 2 lần 60 phút (2 giờ), còn lại 30 phút.', visual: tl([{ label: '2 giờ', from: '8:00', to: '10:00' }, { label: '30 phút', from: '10:00', to: '10:30', color: '#FF8A3D' }], { scale: { from: '8:00', to: '11:00' }, showDuration: true }) },
+          { text: 'Câu b: 150 − 60 = 90, rồi 90 − 60 = 30. Đã lấy ra 2 lần 60 phút (2 giờ), còn lại 30 phút.', visual: tl([{ label: '2 giờ', from: '8:00', to: '10:00' }, { label: '30 phút', from: '10:00', to: '10:30', color: '#F5893A' }], { scale: { from: '8:00', to: '11:00' }, showDuration: true }) },
           { text: 'Đáp án là a) 120 phút; b) 2 giờ 30 phút.' },
         ],
       },
@@ -346,7 +346,7 @@ export default {
     {
       id: '16.4', src: SRC, type: 'choice',
       prompt: 'An bắt đầu học bài lúc 14 giờ và dừng lúc 15 giờ 30 phút để đi chơi. An học bài trong bao lâu?',
-      visual: tl([{ label: 'Học bài', from: '14:00', to: '15:30' }, { label: 'Đi chơi', from: '15:30', to: '16:30', color: '#2FBF71' }], { scale: { from: '13:00', to: '17:00' } }),
+      visual: tl([{ label: 'Học bài', from: '14:00', to: '15:30' }, { label: 'Đi chơi', from: '15:30', to: '16:30', color: '#34B27B' }], { scale: { from: '13:00', to: '17:00' } }),
       hint: 'Đếm từ 14 giờ tới giờ tròn kế tiếp, rồi thêm phần phút.',
       choices: [
         { text: '1 giờ 30 phút', correct: true },
@@ -418,7 +418,7 @@ export default {
       steps: [
         { text: '2 giờ chiều = 2 + 12 = 14 giờ.', visual: clock(14, 0, { mode: 'both', show24: true, ampm: true }) },
         { text: 'Từ 8 giờ 40 phút đến 9 giờ là 20 phút.', visual: tl([{ label: 'Đoạn 1', from: '8:40', to: '9:00' }], { scale: { from: '8:00', to: '15:00' }, showDuration: true }) },
-        { text: 'Từ 9 giờ đến 14 giờ là 5 giờ.', visual: tl([{ label: 'Đoạn 1', from: '8:40', to: '9:00' }, { label: 'Đoạn 2', from: '9:00', to: '14:00', color: '#FF8A3D' }], { scale: { from: '8:00', to: '15:00' }, showDuration: true }) },
+        { text: 'Từ 9 giờ đến 14 giờ là 5 giờ.', visual: tl([{ label: 'Đoạn 1', from: '8:40', to: '9:00' }, { label: 'Đoạn 2', from: '9:00', to: '14:00', color: '#F5893A' }], { scale: { from: '8:00', to: '15:00' }, showDuration: true }) },
         { text: 'Cộng lại: 5 giờ 20 phút. Đáp án là 5 giờ 20 phút.' },
       ],
     },
